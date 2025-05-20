@@ -46,8 +46,11 @@ class Account:
                                                 radius=self.radius, fill=fill_color)
         
         self.text = self.canvas.create_text(x + width/2, y + height/2, 
-                                          text=f"Счет: {account_number}\nБаланс: {format_balance(self.balance, self.type)}", 
-                                          font=("Arial", 12))
+                                          text=f"Счет: {account_number}\nБаланс:\n{format_balance(self.balance, self.type)}", 
+                                          font=("Arial", 12, "bold"),
+                                          justify="center",  # Выравнивание по центру
+                                          width=width - 10,  # Ограничиваем ширину текста, чтобы не вылезал за края
+                                          )
         
         # Привязываем обработчики для перемещения
         self.canvas.tag_bind(self.rect, '<Button3-Motion>', self.move)
@@ -178,7 +181,7 @@ class Account:
                 conn.commit()
                 
                 self.canvas.itemconfig(self.text, 
-                                    text=f"Счет: {self.account_number}\nБаланс: {format_balance(self.balance, self.type)}")
+                                    text=f"Счет: {self.account_number}\nБаланс:\n{format_balance(self.balance, self.type)}")
                 log_operation(self.account_number, amount, "Добавление")
                 dialog.destroy()
                 
@@ -353,9 +356,9 @@ class Account:
                 target_account.balance += target_change
                 
                 self.canvas.itemconfig(self.text, 
-                                    text=f"Счет: {self.account_number}\nБаланс: {format_balance(self.balance, self.type)}")
+                                    text=f"Счет: {self.account_number}\nБаланс:\n{format_balance(self.balance, self.type)}")
                 target_account.canvas.itemconfig(target_account.text, 
-                                            text=f"Счет: {target_account.account_number}\nБаланс: {format_balance(target_account.balance, target_account.type)}")
+                                            text=f"Счет: {target_account.account_number}\nБаланс:\n{format_balance(target_account.balance, target_account.type)}")
                 
                 log_transfer(self.account_number, target_account_number, amount)
                 dialog.destroy()
@@ -1448,7 +1451,7 @@ def clear_balances():
     for account in account_list:
         account.balance = 0
         account.canvas.itemconfig(account.text, 
-                               text=f"Счет: {account.account_number}\nБаланс: {format_balance(account.balance, account.type)}")
+                               text=f"Счет: {account.account_number}\nБаланс:\n{format_balance(account.balance, account.type)}")
     
     messagebox.showinfo("Готово", "Все балансы обнулены, история операций очищена!", parent=root)
 
