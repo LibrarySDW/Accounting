@@ -162,8 +162,13 @@ class Account:
         
         def process_add():
             try:
-                amount = int(amount_entry.get())
-                if amount <= 0:
+                amount = float(amount_entry.get())
+                amount = int(amount * 100) / 100  # Обрезает лишние знаки без округления
+
+                # Внесение средств <0 нельзя, кроме актив-пассив счетов в учебных целях.
+                if self.type == 'activepassive':
+                    pass  # Разрешаем любые значения
+                elif amount <= 0:
                     messagebox.showwarning("Ошибка", "Сумма должна быть положительной!", parent=dialog)
                     return
                     
@@ -195,6 +200,7 @@ class Account:
         x = (dialog.winfo_screenwidth() // 2) - (width // 2)
         y = (dialog.winfo_screenheight() // 2) - (height // 2)
         dialog.geometry(f'+{x}+{y}')
+
 
     # Перевод средств между счетами
     def transfer(self):
@@ -233,10 +239,10 @@ class Account:
         target_combobox.current(0)
         
 
-
         def process_transfer():
             try:
-                amount = int(amount_entry.get())
+                amount = float(amount_entry.get())
+                amount = int(amount * 100) / 100  # Обрезает лишние знаки без округления
                 target_account_number = int(target_combobox.get())
                 
                 if amount <= 0:
@@ -271,54 +277,70 @@ class Account:
                     messagebox.showwarning("Ошибка", "Счет получателя не найден!", parent=dialog)
                     return
                 
-                # Логика для источника (кредит)
+                # Объединенная логика для каждого типа источника
                 if source_type == 'active':
+                    # Для активного счета-источника
                     if source_balance < amount:
                         messagebox.showwarning("Ошибка", "Недостаточно средств на активном счете!", parent=dialog)
                         return
-                    source_change = -amount  # Кредит активного = уменьшение
                     
+                    if target_type == 'active':
+                        # Активный -> Активный
+                        source_change = -amount  # Уменьшаем актив-источник
+                        target_change = amount   # Увеличиваем актив-цель
+                    elif target_type == 'passive':
+                        # Активный -> Пассивный
+                        source_change = -amount  # Уменьшаем актив
+                        target_change = -amount  # Уменьшаем пассив
+                        
+                        if target_balance + target_change < 0:
+                            messagebox.showwarning("Ошибка", "Нельзя сделать пасиивный счет отрицательным!", parent=dialog)
+                            return
+                    else:  # activepassive
+                        # Активный -> Активно-пассивный
+                        source_change = -amount
+                        target_change = amount  # Всегда увеличивается для А-П
+                
                 elif source_type == 'passive':
-                    # if source_balance < amount:
-                    #     messagebox.showwarning("Ошибка", "Нельзя списать больше, чем есть на пассивном счете!", parent=dialog)
-                    #     return
-                    source_change = amount  # Кредит пассивного = уменьшение обязательств
-                    
+                    # Для пассивного счета-источника
+                    if target_type == 'active':
+                        # Пассивный -> Активный
+                        source_change = amount  # Пассив увеличивается
+                        target_change = amount  # Актив увеличивается
+                    elif target_type == 'passive':
+                        # Пассивный -> Пассивный
+                        source_change = amount  # Увеличиваем пассив у источника
+                        target_change = -amount  # Уменьшаем пассив у цели
+                        if target_balance + target_change < 0:
+                            messagebox.showwarning("Ошибка", "Нельзя сделать пасиивный счет отрицательным!", parent=dialog)
+                            return
+                    else:  # activepassive
+                        # Пассивный -> Активно-пассивный
+                        source_change = amount
+                        target_change = amount  # Всегда увеличивается для А-П
+                
                 else:  # activepassive
-                    if source_balance >= 0:  # Если в активе
-                        if source_balance < amount:
-                            # Переходим в пассив
-                            source_change = -source_balance - (amount - source_balance)
-                        else:
-                            source_change = -amount  # Уменьшение актива
-                    else:  # Если в пассиве
-                        source_change = -amount  # Уменьшение пассива
-                        
-                # Логика для получателя (дебет)
-                if target_type == 'active':
-                    target_change = amount  # Дебет активного = увеличение
-                    
-                elif target_type == 'passive':
-                    target_change = -amount  # Дебет пассивного = увеличение обязательств
-                    if target_balance + target_change < 0:
-                        messagebox.showwarning("Ошибка", "Нельзя сделать дебет пассивного счета!", parent=dialog)
-                        return
-                        
-                else:  # activepassive
-                    if target_balance >= 0:  # Если в активе
-                        target_change = amount  # Увеличение актива
-                    else:  # Если в пассиве
-                        target_change = amount  # Уменьшение пассива
-                        
-                # Проверки
-                if source_type == 'active' and (source_balance + source_change) < 0:
-                    messagebox.showwarning("Ошибка", "Недостаточно средств на активном счете!", parent=dialog)
-                    return
-                    
-                if target_type == 'passive' and (target_balance + target_change) < 0:
-                    messagebox.showwarning("Ошибка", "Нельзя сделать дебет пассивного счета!", parent=dialog)
-                    return
-                    
+                    # Для активно-пассивного счета-источника
+                    if target_type == 'active':
+                        # Активно-пассивный -> Активный
+                        source_change = -amount
+                        target_change = amount
+                    elif target_type == 'passive':
+                        # Активно-пассивный -> Пассивный
+                        source_change = -amount
+                        target_change = -amount
+                        if target_balance + target_change < 0:
+                            messagebox.showwarning("Ошибка", "Нельзя сделать пасиивный счет отрицательным!", parent=dialog)
+                            return
+                    else:  # activepassive
+                        # Активно-пассивный -> Активно-пассивный
+                        if source_balance >= 0: # Положительный Актив-пассив
+                            source_change = -amount
+                            target_change = amount
+                        else: # Отрицательный Актив-пассив
+                            source_change = amount
+                            target_change = -amount
+                
                 # Обновляем балансы
                 cursor.execute("UPDATE accounts SET balance=balance+? WHERE account_number=?", 
                             (source_change, self.account_number))
@@ -339,9 +361,8 @@ class Account:
                 dialog.destroy()
                 
             except ValueError:
-                messagebox.showwarning("Ошибка", "Введите корректные числовые значения!", parent=dialog)
-
-
+                messagebox.showwarning("Ошибка", "Введите корректные числовые значения!", parent=dialog)    
+        
         
         tk.Button(dialog, text="Перевести", command=process_transfer).grid(row=2, columnspan=2, pady=5)
         
@@ -544,7 +565,7 @@ class Account:
                     f"Дебет: {target} ← Кредит: {source} | Сумма: {amount} | Время: ({timestamp})"
                 )
 
-
+# Добавить счет на поле
 def add_account(event):
     dialog = Toplevel(root)
     dialog.title("Добавить счет")
@@ -1311,7 +1332,7 @@ def init_db():
             account_number INTEGER UNIQUE,
             name TEXT,
             description TEXT,
-            balance INTEGER DEFAULT 0,
+            balance REAL DEFAULT 0,
             status TEXT DEFAULT 'not on field',
             x INTEGER,
             y INTEGER,
@@ -1538,7 +1559,7 @@ def update_time():
 
 update_time()  # Запускаем обновление времени
 
-
+# Сохраняем текущее состояние
 def save_current_state():
     # Спрашиваем у пользователя имя файла для сохранения
     filename = simpledialog.askstring("Сохранение", "Введите имя файла для сохранения:", parent=root)
@@ -1595,6 +1616,7 @@ def save_current_state():
     except Exception as e:
         messagebox.showerror("Ошибка", f"Не удалось сохранить файл: {str(e)}", parent=root)
 
+# Загружаем текущее состояние
 def load_saved_state():
     # Спрашиваем подтверждение, так как текущие данные будут перезаписаны
     if not messagebox.askyesno("Подтверждение", 
