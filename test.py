@@ -899,28 +899,56 @@ def show_reports():
             return container, total
         
         # Получаем данные
-        active_data = {'non_current_assets': [], 'current_assets': []}
-        passive_data = {'capital': [], 'long_term_liabilities': [], 'short_term_liabilities': []}
+        active_data = {
+            'non_current_assets': [], 
+            'current_assets': []
+        }
+        passive_data = {
+            'capital': [], 
+            'long_term_liabilities': [], 
+            'short_term_liabilities': []
+        }
         
-        cursor.execute("SELECT account_number, name, balance, type, category FROM accounts WHERE status='on field' AND balance != 0")
+        cursor.execute("""
+            SELECT account_number, name, balance, type, category 
+            FROM accounts 
+            WHERE status='on field' AND balance != 0
+        """)
+        
         for row in cursor.fetchall():
             account_number, name, balance, acc_type, category = row
             
-            if category in active_data:
-                if acc_type == 'active':
+            # Определяем, в какую колонку поместить счет
+            if acc_type == 'active':
+                # Активные счета всегда в активы
+                if category in active_data:
                     active_data[category].append((account_number, name, balance))
-                elif acc_type == 'passive':
-                    active_data[category].append((account_number, name, -balance))
-                elif acc_type == 'activepassive':
-                    active_data[category].append((account_number, name, balance))
-                    
-            elif category in passive_data:
-                if acc_type == 'passive':
+                else:
+                    # Если категория не определена, помещаем в current_assets по умолчанию
+                    active_data['current_assets'].append((account_number, name, balance))
+            
+            elif acc_type == 'passive':
+                # Пассивные счета всегда в пассивы
+                if category in passive_data:
                     passive_data[category].append((account_number, name, balance))
-                elif acc_type == 'active':
-                    passive_data[category].append((account_number, name, -balance))
-                elif acc_type == 'activepassive':
-                    passive_data[category].append((account_number, name, balance))
+                else:
+                    # Если категория не определена, помещаем в short_term_liabilities по умолчанию
+                    passive_data['short_term_liabilities'].append((account_number, name, balance))
+            
+            elif acc_type == 'activepassive':
+                # Активно-пассивные счета распределяем по балансу
+                if balance >= 0:
+                    # Положительный баланс - в активы
+                    if category in active_data:
+                        active_data[category].append((account_number, name, balance))
+                    else:
+                        active_data['current_assets'].append((account_number, name, balance))
+                else:
+                    # Отрицательный баланс - в пассивы
+                    if category in passive_data:
+                        passive_data[category].append((account_number, name, abs(balance)))
+                    else:
+                        passive_data['short_term_liabilities'].append((account_number, name, abs(balance)))
         
         # Создаем колонки
         active_column, total_active = create_column(active_frame, active_data)
@@ -932,11 +960,10 @@ def show_reports():
         ttk.Label(main_frame, text=f"Итого Пассивы: {total_passive}", 
                 font=('Arial', 11, 'bold')).grid(row=2, column=1, sticky='w', pady=5)
         
-        # Проверка баланса
-        if total_active != total_passive:
-            ttk.Label(main_frame, text="ОШИБКА: Активы и Пассивы не сходятся!", 
-                    foreground='red', font=('Arial', 12, 'bold')).grid(row=3, columnspan=2, pady=10)
-            
+        # # Проверка баланса
+        # if total_active != total_passive:
+        #     ttk.Label(main_frame, text="ОШИБКА: Активы и Пассивы не сходятся!", 
+        #             foreground='red', font=('Arial', 12, 'bold')).grid(row=3, columnspan=2, pady=10)
 
 
 

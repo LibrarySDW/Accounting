@@ -9,10 +9,10 @@
         },
         {
             "account_number": 2,
-            "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "balance": 2,
+            "status": "on field",
+            "x": 421,
+            "y": 322
         },
         {
             "account_number": 3,
@@ -66,9 +66,9 @@
         {
             "account_number": 10,
             "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "status": "on field",
+            "x": 380,
+            "y": 183
         },
         {
             "account_number": 11,
@@ -135,10 +135,10 @@
         },
         {
             "account_number": 20,
-            "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "balance": 12,
+            "status": "on field",
+            "x": 1131,
+            "y": 214
         },
         {
             "account_number": 21,
@@ -345,17 +345,17 @@
         },
         {
             "account_number": 50,
-            "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "balance": 20,
+            "status": "on field",
+            "x": 764,
+            "y": 131
         },
         {
             "account_number": 51,
             "balance": 0,
             "status": "on field",
-            "x": 202,
-            "y": 175
+            "x": 131,
+            "y": 375
         },
         {
             "account_number": 52,
@@ -416,9 +416,9 @@
         {
             "account_number": 60,
             "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "status": "on field",
+            "x": 167,
+            "y": 202
         },
         {
             "account_number": 61,
@@ -429,10 +429,10 @@
         },
         {
             "account_number": 62,
-            "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "balance": -10,
+            "status": "on field",
+            "x": 810,
+            "y": 329
         },
         {
             "account_number": 63,
@@ -485,10 +485,10 @@
         },
         {
             "account_number": 70,
-            "balance": 0,
+            "balance": 10,
             "status": "on field",
-            "x": 439,
-            "y": 298
+            "x": 953,
+            "y": 133
         },
         {
             "account_number": 71,
@@ -521,9 +521,9 @@
         {
             "account_number": 75,
             "balance": 0,
-            "status": "on field",
-            "x": 541,
-            "y": 81
+            "status": "not on field",
+            "x": null,
+            "y": null
         },
         {
             "account_number": 76,
@@ -584,9 +584,9 @@
         {
             "account_number": 84,
             "balance": 0,
-            "status": "on field",
-            "x": 710,
-            "y": 196
+            "status": "not on field",
+            "x": null,
+            "y": null
         },
         {
             "account_number": 85,
@@ -625,10 +625,10 @@
         },
         {
             "account_number": 90,
-            "balance": 0,
-            "status": "not on field",
-            "x": null,
-            "y": null
+            "balance": -10,
+            "status": "on field",
+            "x": 980,
+            "y": 323
         },
         {
             "account_number": 91,
@@ -688,111 +688,87 @@
         },
         {
             "account_number": 99,
-            "balance": 100,
-            "status": "on field",
-            "x": 948,
-            "y": 211
+            "balance": 0,
+            "status": "not on field",
+            "x": null,
+            "y": null
         }
     ],
     "operations": [
         {
-            "account_number": 51,
-            "amount": 100,
-            "operation": "Добавление",
-            "timestamp": "2025-05-19 22:15:20"
-        },
-        {
-            "account_number": 51,
-            "amount": 20,
-            "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-19 22:15:24"
-        },
-        {
             "account_number": 70,
-            "amount": 20,
-            "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-19 22:15:24"
-        },
-        {
-            "account_number": 51,
-            "amount": 80,
+            "amount": 10,
             "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-19 22:15:31"
+            "timestamp": "2025-05-19 23:45:01"
         },
         {
-            "account_number": 75,
-            "amount": 80,
+            "account_number": 20,
+            "amount": 10,
             "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-19 22:15:31"
+            "timestamp": "2025-05-19 23:45:01"
         },
         {
-            "account_number": 70,
-            "amount": 20,
+            "account_number": 90,
+            "amount": 10,
             "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-19 22:15:35"
+            "timestamp": "2025-05-19 23:45:04"
         },
         {
-            "account_number": 84,
-            "amount": 20,
+            "account_number": 50,
+            "amount": 10,
             "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-19 22:15:35"
+            "timestamp": "2025-05-19 23:45:04"
         },
         {
-            "account_number": 75,
-            "amount": 80,
+            "account_number": 62,
+            "amount": 10,
             "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-19 22:15:43"
+            "timestamp": "2025-05-19 23:45:07"
         },
         {
-            "account_number": 84,
-            "amount": 80,
+            "account_number": 50,
+            "amount": 10,
             "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-19 22:15:43"
+            "timestamp": "2025-05-19 23:45:07"
         },
         {
-            "account_number": 84,
-            "amount": 100,
+            "account_number": 2,
+            "amount": 2,
             "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-19 22:15:50"
+            "timestamp": "2025-05-20 07:30:53"
         },
         {
-            "account_number": 99,
-            "amount": 100,
+            "account_number": 20,
+            "amount": 2,
             "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-19 22:15:50"
+            "timestamp": "2025-05-20 07:30:53"
         }
     ],
     "transfers": [
         {
-            "source_account_number": 51,
-            "target_account_number": 70,
-            "amount": 20,
-            "timestamp": "2025-05-19 22:15:24"
-        },
-        {
-            "source_account_number": 51,
-            "target_account_number": 75,
-            "amount": 80,
-            "timestamp": "2025-05-19 22:15:31"
-        },
-        {
             "source_account_number": 70,
-            "target_account_number": 84,
-            "amount": 20,
-            "timestamp": "2025-05-19 22:15:35"
+            "target_account_number": 20,
+            "amount": 10,
+            "timestamp": "2025-05-19 23:45:01"
         },
         {
-            "source_account_number": 75,
-            "target_account_number": 84,
-            "amount": 80,
-            "timestamp": "2025-05-19 22:15:43"
+            "source_account_number": 90,
+            "target_account_number": 50,
+            "amount": 10,
+            "timestamp": "2025-05-19 23:45:04"
         },
         {
-            "source_account_number": 84,
-            "target_account_number": 99,
-            "amount": 100,
-            "timestamp": "2025-05-19 22:15:50"
+            "source_account_number": 62,
+            "target_account_number": 50,
+            "amount": 10,
+            "timestamp": "2025-05-19 23:45:07"
+        },
+        {
+            "source_account_number": 2,
+            "target_account_number": 20,
+            "amount": 2,
+            "timestamp": "2025-05-20 07:30:53"
         }
     ],
-    "timestamp": "2025-05-20 11:19:15"
+    "timestamp": "2025-05-20 10:31:28"
 }
