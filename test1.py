@@ -5,6 +5,8 @@ import sqlite3
 import time
 import json
 from datetime import datetime
+import sys
+import os
 
 class Account:
     def __init__(self, canvas, x, y, account_number, from_db=False):
@@ -16,10 +18,11 @@ class Account:
         self.radius = 15  # Радиус закругления углов
         
         # Получаем данные о счете из БД
-        cursor.execute("SELECT balance, type FROM accounts WHERE account_number=?", (account_number,))
+        cursor.execute("SELECT balance, type, category FROM accounts WHERE account_number=?", (account_number,))
         result = cursor.fetchone()
         self.balance = result[0] if result else 0
         self.type = result[1] if result else 'asset'
+        self.category = result[2] if result else 'undefined'
         
         if not from_db:
             cursor.execute("UPDATE accounts SET status=?, x=?, y=? WHERE account_number=?", 
@@ -229,6 +232,8 @@ class Account:
         target_combobox.grid(row=1, column=1, padx=5, pady=5)
         target_combobox.current(0)
         
+
+
         def process_transfer():
             try:
                 amount = int(amount_entry.get())
@@ -238,7 +243,7 @@ class Account:
                     messagebox.showwarning("Ошибка", "Сумма должна быть положительной!", parent=dialog)
                     return
                     
-                # Проверяем, существует ли связь между счетами
+                # Проверяем связь между счетами
                 cursor.execute("""
                     SELECT 1 FROM connections 
                     WHERE account_number=? AND connected_account_number=?
@@ -248,7 +253,7 @@ class Account:
                     messagebox.showwarning("Ошибка", "Невозможно перевести - счета не связаны!", parent=dialog)
                     return
                 
-                # Получаем типы обоих счетов
+                # Получаем данные счетов
                 cursor.execute("SELECT type, balance FROM accounts WHERE account_number=?", (self.account_number,))
                 source_type, source_balance = cursor.fetchone()
                 
@@ -266,65 +271,62 @@ class Account:
                     messagebox.showwarning("Ошибка", "Счет получателя не найден!", parent=dialog)
                     return
                 
-                # Проверяем достаточно ли баланса на счете-источнике
+                # Логика для источника (кредит)
                 if source_type == 'active':
-                    if source_balance == 0 or (source_balance - amount < 0):
-                        messagebox.showwarning("Ошибка", "Недостаточно баланса на активном счете!", parent=dialog)
+                    if source_balance < amount:
+                        messagebox.showwarning("Ошибка", "Недостаточно средств на активном счете!", parent=dialog)
                         return
-                    elif source_balance < 0:
-                        messagebox.showwarning("Ошибка", "Баланс данного счета отрицателен, где-то произошла ошибка", parent=dialog)
-                        return
+                    source_change = -amount  # Кредит активного = уменьшение
+                    
                 elif source_type == 'passive':
-                    if source_balance < 0:
-                        messagebox.showwarning("Ошибка", "Баланс данного счета отрицателен, где-то произошла ошибка", parent=dialog)
+                    # if source_balance < amount:
+                    #     messagebox.showwarning("Ошибка", "Нельзя списать больше, чем есть на пассивном счете!", parent=dialog)
+                    #     return
+                    source_change = amount  # Кредит пассивного = уменьшение обязательств
+                    
+                else:  # activepassive
+                    if source_balance >= 0:  # Если в активе
+                        if source_balance < amount:
+                            # Переходим в пассив
+                            source_change = -source_balance - (amount - source_balance)
+                        else:
+                            source_change = -amount  # Уменьшение актива
+                    else:  # Если в пассиве
+                        source_change = -amount  # Уменьшение пассива
+                        
+                # Логика для получателя (дебет)
+                if target_type == 'active':
+                    target_change = amount  # Дебет активного = увеличение
+                    
+                elif target_type == 'passive':
+                    target_change = -amount  # Дебет пассивного = увеличение обязательств
+                    if target_balance + target_change < 0:
+                        messagebox.showwarning("Ошибка", "Нельзя сделать дебет пассивного счета!", parent=dialog)
                         return
-                # elif source_type == 'activepassive':
-                #     if source_balance < 0:
-                #         messagebox.showwarning("Ошибка", "Перевод невозможен!", parent=dialog)
-                #         return
-                #     elif source_balance == 0 or (source_balance - amount < 0):
-                #         messagebox.showwarning("Ошибка", "Недостаточно баланса на активно-пассивном счете!", parent=dialog)
-                #         return
-                
-                # Проверяем, чтобы у таргет счетов не было отрицательного баланса после перевода
-                if target_type == 'passive' and (target_balance - amount) < 0:
-                    messagebox.showwarning("Ошибка", "Нельзя сделать баланс пассивного счета отрицательным!", parent=dialog)
+                        
+                else:  # activepassive
+                    if target_balance >= 0:  # Если в активе
+                        target_change = amount  # Увеличение актива
+                    else:  # Если в пассиве
+                        target_change = amount  # Уменьшение пассива
+                        
+                # Проверки
+                if source_type == 'active' and (source_balance + source_change) < 0:
+                    messagebox.showwarning("Ошибка", "Недостаточно средств на активном счете!", parent=dialog)
                     return
                     
-                # Вычисляем изменения балансов в зависимости от типов счетов
-                source_change = -amount  #  уменьшаем баланс
-                target_change = amount   # увеличиваем баланс
-                
-                if source_type == 'active':
-                    source_change = -amount 
-                    if target_type == 'passive':
-                        target_change = -amount  # Для перевода active -> passive уменьшаем целевой счет
-                    else:
-                        target_change = amount
-
-                elif source_type == 'passive':
-                    source_change = amount  # Для пассивного счета уменьшаем баланс (увеличиваем пассив)
-                    if target_type == 'passive':
-                        target_change = -amount   # Для passive -> passive уменьшаем целевой счет
-                    else:  # Для перевода passive -> active и passive -> activepassive увеличиваем целевой счет
-                        target_change = amount
+                if target_type == 'passive' and (target_balance + target_change) < 0:
+                    messagebox.showwarning("Ошибка", "Нельзя сделать дебет пассивного счета!", parent=dialog)
+                    return
                     
-                elif source_type == 'activepassive':
-                    # Действуем как active счет
-                    source_change = -amount 
-                    if target_type == 'passive':
-                        target_change = -amount  # Для перевода active -> passive уменьшаем целевой счет
-                    else:
-                        target_change = amount
-
-                # Обновляем балансы в БД
+                # Обновляем балансы
                 cursor.execute("UPDATE accounts SET balance=balance+? WHERE account_number=?", 
                             (source_change, self.account_number))
                 cursor.execute("UPDATE accounts SET balance=balance+? WHERE account_number=?", 
                             (target_change, target_account_number))
                 conn.commit()
                 
-                # Обновляем балансы в интерфейсе
+                # Обновляем интерфейс
                 self.balance += source_change
                 target_account.balance += target_change
                 
@@ -338,6 +340,8 @@ class Account:
                 
             except ValueError:
                 messagebox.showwarning("Ошибка", "Введите корректные числовые значения!", parent=dialog)
+
+
         
         tk.Button(dialog, text="Перевести", command=process_transfer).grid(row=2, columnspan=2, pady=5)
         
@@ -356,6 +360,11 @@ class Account:
                                 parent=root):
             return  # Если пользователь отказался, выходим из метода
         
+        # Удаляем все связанные линии с холста
+        for line_id in self.lines:
+            if canvas.type(line_id) == 'line':
+                canvas.delete(line_id)
+        
         # Удаляем связанные операции и переводы
         cursor.execute("DELETE FROM operations WHERE account_number=?", (self.account_number,))
         cursor.execute("DELETE FROM transfers WHERE source_account_number=? OR target_account_number=?", 
@@ -365,10 +374,16 @@ class Account:
         cursor.execute("UPDATE accounts SET status=?, balance=0, x=NULL, y=NULL WHERE account_number=?", 
                     ("not on field", self.account_number))
         conn.commit()
-        
+            
+        # Удаляем графические элементы с холста
         self.canvas.delete(self.rect)
         self.canvas.delete(self.text)
+        
+        # Удаляем счет из списка
         account_list.remove(self)
+        
+        # Обновляем линии соединений
+        update_connection_lines()
         
         messagebox.showinfo("Успешно", f"Счет {self.account_number} был удален", parent=root)
 
@@ -418,8 +433,8 @@ class Account:
         scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
 
         # Получаем полную информацию о счете из БД
-        cursor.execute("SELECT name, description, balance, type FROM accounts WHERE account_number=?", (self.account_number,))
-        name, description, balance, acc_type = cursor.fetchone()
+        cursor.execute("SELECT name, description, balance, type, category FROM accounts WHERE account_number=?", (self.account_number,))
+        name, description, balance, acc_type, category = cursor.fetchone()
 
         # Основная информация о счете
         main_info_frame = tk.Frame(scrollable_frame, width=580)  # Фиксируем ширину
@@ -429,6 +444,7 @@ class Account:
         tk.Label(main_info_frame, text=f"Название: {name}", font=('Arial', 12)).pack(anchor='w')
         tk.Label(main_info_frame, text=f"Баланс: {format_balance(balance, acc_type)}", font=('Arial', 12)).pack(anchor='w')
         tk.Label(main_info_frame, text=f"Тип: {'Актив-Пассив' if acc_type == 'activepassive' else ('Неопределен' if acc_type == 'undefined' else ('Актив' if acc_type == 'active' else 'Пассив'))}", font=('Arial', 12)).pack(anchor='w')
+        tk.Label(main_info_frame, text=f"Категория: {format_category(category)}", font=('Arial', 12)).pack(anchor='w')
         
         # Фрейм для описания с прокруткой
         desc_frame = tk.Frame(main_info_frame, width=580)
@@ -492,7 +508,7 @@ class Account:
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
 
         # Заголовок истории переводов
-        tk.Label(scrollable_frame, text="История переводов:", font=('Arial', 12, 'bold')).pack()
+        tk.Label(scrollable_frame, text="Движение денежных средств:", font=('Arial', 12, 'bold')).pack()
 
         # Список всех переводов
         transfers_frame = tk.Frame(scrollable_frame, width=580)
@@ -579,7 +595,7 @@ def add_account(event):
 
 # Обновление линий между счетами
 def update_connection_lines():
-    # Сначала удаляем все существующие линии со canvas
+    # Сначала удаляем все существующие линии с canvas
     for line in canvas.find_all():
         if canvas.type(line) == 'line':
             canvas.delete(line)
@@ -631,17 +647,37 @@ def update_connection_lines():
             account2.lines.append(line_id)
 
 
+# def format_balance(balance, acc_type):
+#     """Форматирует баланс счета в зависимости от его типа"""
+#     if acc_type == 'passive' or (acc_type == 'activepassive' and balance < 0):
+#         return f"({abs(balance)})"  # Для пассивных счетов и отрицательного баланса активно-пассивных
+#     return str(balance)
+
 def format_balance(balance, acc_type):
     """Форматирует баланс счета в зависимости от его типа"""
-    if acc_type == 'passive' or (acc_type == 'activepassive' and balance < 0):
-        return f"({abs(balance)})"  # Для пассивных счетов и отрицательного баланса активно-пассивных
-    return str(balance)
+    if (acc_type == 'passive' and balance > 0) or \
+       (acc_type == 'active' and balance < 0) or \
+       (acc_type == 'activepassive' and balance < 0):
+        return f"({abs(balance)})"  # Отрицательное сальдо в скобках
+    return str(balance)  # Положительное сальдо без скобок
+
+def format_category(category):
+    """Форматирует категорию счета для отображения"""
+    category_names = {
+        'non_current_assets': 'Внеоборотные активы',
+        'current_assets': 'Оборотные активы',
+        'capital': 'Капитал и резервы',
+        'long_term_liabilities': 'Долгосрочные обязательства',
+        'short_term_liabilities': 'Краткосрочные обязательства',
+        'undefined': 'Неопределено'
+    }
+    return category_names.get(category, 'Неизвестно')
 
 # Окно истории переводов между двумя счетами
 def show_transfers_between_accounts(account1_num, account2_num):
     # Создаем окно
     transfer_window = Toplevel(root)
-    transfer_window.title(f"История переводов между {account1_num} и {account2_num}")
+    transfer_window.title(f"Движение денежных средств между {account1_num} и {account2_num}")
     transfer_window.geometry("800x400")
     transfer_window.grab_set()
     
@@ -658,7 +694,7 @@ def show_transfers_between_accounts(account1_num, account2_num):
 
     # Заголовок
     tk.Label(main_frame, 
-            text=f"История переводов между счетами {account1_num} и {account2_num}", 
+            text=f"Движение денежных средств между счетами {account1_num} и {account2_num}", 
             font=('Arial', 12, 'bold')).pack(pady=10)
 
     # Создаем Listbox с прокруткой
@@ -733,7 +769,7 @@ def show_reports():
 
     # Вкладка "Переводы средств"
     tab2 = tk.Frame(notebook)
-    notebook.add(tab2, text="Переводы средств")
+    notebook.add(tab2, text="Движение средств")
 
     # Вкладка "Актив/Пассив"
     tab3 = tk.Frame(notebook)
@@ -782,7 +818,7 @@ def show_reports():
         for widget in tab2.winfo_children():
             widget.destroy()
             
-        transfers_label = tk.Label(tab2, text="История переводов:", font=('Arial', 12, 'bold'))
+        transfers_label = tk.Label(tab2, text="Движение денежных средств:", font=('Arial', 12, 'bold'))
         transfers_label.pack(pady=5)
 
         transfers_listbox = Listbox(tab2, width=100, height=20, font=('Arial', 10))
@@ -809,67 +845,100 @@ def show_reports():
         # Очищаем предыдущие данные
         for widget in tab3.winfo_children():
             widget.destroy()
-                
-        # Создаем фрейм для таблицы
-        balance_frame = tk.Frame(tab3)
-        balance_frame.pack(fill='both', expand=True, padx=10, pady=10)
         
-        # Заголовки столбцов
-        tk.Label(balance_frame, text="Актив", font=('Arial', 12, 'bold')).grid(row=0, column=0, padx=5, pady=5)
-        tk.Label(balance_frame, text="Пассив", font=('Arial', 12, 'bold')).grid(row=0, column=1, padx=5, pady=5)
+        # Создаем основной контейнер
+        main_frame = ttk.Frame(tab3)
+        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
         
-        # Получаем активные счета (balance > 0)
-        active_accounts = []
-        passive_accounts = []
+        # Заголовки столбцов (выровнены по левому краю)
+        ttk.Label(main_frame, text="АКТИВЫ", font=('Arial', 12, 'bold'), anchor='w').grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        ttk.Label(main_frame, text="ПАССИВЫ", font=('Arial', 12, 'bold'), anchor='w').grid(row=0, column=1, sticky='w', padx=5, pady=5)
         
-        cursor.execute("""
-            SELECT a.account_number, a.name, a.balance, a.type 
-            FROM accounts a 
-            WHERE a.status='on field' AND a.balance != 0
-            ORDER BY a.account_number
-        """)
+        # Создаем фреймы для колонок с прокруткой
+        active_frame = ttk.Frame(main_frame)
+        passive_frame = ttk.Frame(main_frame)
+        active_frame.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+        passive_frame.grid(row=1, column=1, sticky='nsew', padx=5, pady=5)
         
-        for account_number, name, balance, acc_type in cursor.fetchall():
-            if (acc_type == 'active' and balance > 0) or (acc_type == 'activepassive' and balance > 0):
-                active_accounts.append((account_number, name, balance))
-            elif (acc_type == 'passive' and balance > 0) or (acc_type == 'activepassive' and balance < 0):
-                passive_accounts.append((account_number, name, abs(balance))) 
-
-
-        # Создаем Listbox для активов
-        active_listbox = Listbox(balance_frame, width=50, height=25, font=('Arial', 10))
-        active_scroll = tk.Scrollbar(balance_frame, orient="vertical", command=active_listbox.yview)
-        active_listbox.configure(yscrollcommand=active_scroll.set)
+        # Настраиваем пропорции
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(1, weight=1)
+        main_frame.grid_rowconfigure(1, weight=1)
         
-        active_listbox.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
-        active_scroll.grid(row=1, column=0, padx=5, pady=5, sticky="nse")
-        
-        # Создаем Listbox для пассивов
-        passive_listbox = Listbox(balance_frame, width=50, height=25, font=('Arial', 10))
-        passive_scroll = tk.Scrollbar(balance_frame, orient="vertical", command=passive_listbox.yview)
-        passive_listbox.configure(yscrollcommand=passive_scroll.set)
-        
-        passive_listbox.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
-        passive_scroll.grid(row=1, column=1, padx=5, pady=5, sticky="nse")
-        
-        # Заполняем списки
-        for account_number, name, balance in active_accounts:
-            active_listbox.insert(tk.END, f"{account_number} - {name}: {balance}")
+        # Функция для создания колонки
+        def create_column(parent, data):
+            container = ttk.Frame(parent)
+            container.pack(fill='both', expand=True)
             
-        for account_number, name, balance in passive_accounts:
-            passive_listbox.insert(tk.END, f"{account_number} - {name}: {balance}")
+            canvas = tk.Canvas(container)
+            scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+            scrollable_frame = ttk.Frame(canvas)
+            
+            scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+            canvas.create_window((0, 0), window=scrollable_frame, anchor='nw')
+            canvas.configure(yscrollcommand=scrollbar.set)
+            
+            canvas.pack(side='left', fill='both', expand=True)
+            scrollbar.pack(side='right', fill='y')
+            
+            total = 0
+            for category, accounts in data.items():
+                if accounts:
+                    # Категория (выровнена по левому краю)
+                    ttk.Label(scrollable_frame, 
+                            text=format_category(category), 
+                            font=('Arial', 11, 'underline')).pack(anchor='w', pady=(5,0))
+                    
+                    # Счета (выровнены по левому краю)
+                    for acc_num, acc_name, balance in accounts:
+                        ttk.Label(scrollable_frame, 
+                                text=f"{acc_num} {acc_name}: {abs(balance)}", 
+                                font=('Arial', 10)).pack(anchor='w')
+                        total += balance
+            
+            return container, total
         
-        # Настраиваем веса строк и столбцов для правильного растягивания
-        balance_frame.grid_rowconfigure(1, weight=1)
-        balance_frame.grid_columnconfigure(0, weight=1)
-        balance_frame.grid_columnconfigure(1, weight=1)
+        # Получаем данные
+        active_data = {'non_current_assets': [], 'current_assets': []}
+        passive_data = {'capital': [], 'long_term_liabilities': [], 'short_term_liabilities': []}
         
-        # Добавляем итоговые суммы
-        total_active = sum(balance for _, _, balance in active_accounts)
-        total_passive = sum(balance for _, _, balance in passive_accounts)
+        cursor.execute("SELECT account_number, name, balance, type, category FROM accounts WHERE status='on field' AND balance != 0")
+        for row in cursor.fetchall():
+            account_number, name, balance, acc_type, category = row
+            
+            if category in active_data:
+                if acc_type == 'active':
+                    active_data[category].append((account_number, name, balance))
+                elif acc_type == 'passive':
+                    active_data[category].append((account_number, name, -balance))
+                elif acc_type == 'activepassive':
+                    active_data[category].append((account_number, name, balance))
+                    
+            elif category in passive_data:
+                if acc_type == 'passive':
+                    passive_data[category].append((account_number, name, balance))
+                elif acc_type == 'active':
+                    passive_data[category].append((account_number, name, -balance))
+                elif acc_type == 'activepassive':
+                    passive_data[category].append((account_number, name, balance))
         
-        tk.Label(balance_frame, text=f"Итого: {total_active}", font=('Arial', 12, 'bold')).grid(row=2, column=0, padx=5, pady=5)
-        tk.Label(balance_frame, text=f"Итого: {total_passive}", font=('Arial', 12, 'bold')).grid(row=2, column=1, padx=5, pady=5)
+        # Создаем колонки
+        active_column, total_active = create_column(active_frame, active_data)
+        passive_column, total_passive = create_column(passive_frame, passive_data)
+        
+        # Итоги (выровнены по левому краю под своими колонками)
+        ttk.Label(main_frame, text=f"Итого Активы: {total_active}", 
+                font=('Arial', 11, 'bold')).grid(row=2, column=0, sticky='w', pady=5)
+        ttk.Label(main_frame, text=f"Итого Пассивы: {total_passive}", 
+                font=('Arial', 11, 'bold')).grid(row=2, column=1, sticky='w', pady=5)
+        
+        # Проверка баланса
+        if total_active != total_passive:
+            ttk.Label(main_frame, text="ОШИБКА: Активы и Пассивы не сходятся!", 
+                    foreground='red', font=('Arial', 12, 'bold')).grid(row=3, columnspan=2, pady=10)
+            
+
+
 
     # Функция для обновления текущей вкладки
     def on_tab_changed(event):
@@ -1051,7 +1120,7 @@ def show_all_accounts_info():
         
         # Получаем все счета из БД в заданном диапазоне
         cursor.execute("""
-            SELECT account_number, name, description, balance, type 
+            SELECT account_number, name, description, balance, type, category 
             FROM accounts 
             WHERE account_number BETWEEN ? AND ?
             ORDER BY account_number
@@ -1059,7 +1128,7 @@ def show_all_accounts_info():
         
         accounts = cursor.fetchall()
 
-        for i, (account_number, name, description, balance, acc_type) in enumerate(accounts):
+        for i, (account_number, name, description, balance, acc_type, category) in enumerate(accounts):
             # Фрейм для информации о счете
             account_frame = ttk.Frame(scrollable_frame, borderwidth=2, relief="groove", padding=(10, 10))
             account_frame.pack(fill='x', padx=10, pady=5, ipadx=5, ipady=5)
@@ -1072,6 +1141,7 @@ def show_all_accounts_info():
             ttk.Label(account_frame, text=f"Название: {name}", font=('Arial', 11)).pack(anchor='w')
             ttk.Label(account_frame, text=f"Баланс: {format_balance(balance, acc_type)}", font=('Arial', 11)).pack(anchor='w')
             ttk.Label(account_frame, text=f"Тип: {'Актив-Пассив' if acc_type == 'activepassive' else ('Неопределен' if acc_type == 'undefined' else ('Актив' if acc_type == 'active' else 'Пассив'))}", font=('Arial', 12)).pack(anchor='w')
+            ttk.Label(account_frame, text=f"Категория: {format_category(category)}", font=('Arial', 12)).pack(anchor='w')
 
             # Фрейм для описания с прокруткой
             desc_frame = ttk.Frame(account_frame)
@@ -1218,7 +1288,15 @@ def init_db():
             status TEXT DEFAULT 'not on field',
             x INTEGER,
             y INTEGER,
-            type TEXT CHECK(type IN ('active', 'passive', 'activepassive', 'undefined')) DEFAULT 'asset'
+            type TEXT CHECK(type IN ('active', 'passive', 'activepassive', 'undefined')) DEFAULT 'asset',
+            category TEXT CHECK(category IN (
+                'non_current_assets', 
+                'current_assets', 
+                'capital', 
+                'long_term_liabilities', 
+                'short_term_liabilities',
+                'undefined'
+            )) DEFAULT 'undefined'
         )
     ''')
 
@@ -1259,26 +1337,39 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM accounts")
     if cursor.fetchone()[0] == 0:
         accounts_data = [
-            (1, "Касса", "Наличные денежные средства", 'asset'),
-            (2, "Расчетный счет", "Деньги на банковском счете", 'asset'),
-            (3, "Основные средства", "Оборудование, здания", 'asset'),
-            (4, "Кредиторская задолженность", "Долги перед поставщиками", 'liability'),
-            (5, "Займы и кредиты", "Банковские кредиты", 'liability')
+            (1, "Касса", "Наличные денежные средства", 'asset', 'current_assets'),
+            (2, "Расчетный счет", "Деньги на банковском счете", 'asset', 'current_assets'),
+            (3, "Основные средства", "Оборудование, здания", 'asset', 'non_current_assets'),
+            (4, "Кредиторская задолженность", "Долги перед поставщиками", 'liability', 'short_term_liabilities'),
+            (5, "Займы и кредиты", "Банковские кредиты", 'liability', 'long_term_liabilities'),
+            (6, "Уставный капитал", "Средства учредителей", 'liability', 'capital')
         ]
-        for account_number, name, description, acc_type in accounts_data:
-            cursor.execute("INSERT INTO accounts (account_number, name, description, type) VALUES (?, ?, ?, ?)",
-                          (account_number, name, description, acc_type))
-    conn.commit()
+        for account_number, name, description, acc_type, category in accounts_data:
+            cursor.execute("INSERT INTO accounts (account_number, name, description, type, category) VALUES (?, ?, ?, ?, ?)",
+                        (account_number, name, description, acc_type, category))
 
 def on_closing():
     if messagebox.askokcancel("Выход", "Вы уверены, что хотите выйти?"):
         conn.close()
         root.destroy()
 
+def resource_path(relative_path):
+    """ Получает абсолютный путь к ресурсу, работает для dev и для PyInstaller """
+    try:
+        # PyInstaller создает временную папку и хранит путь в _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # Подключение к базе данных
-conn = sqlite3.connect('accounts.db')
+db_path = resource_path('accounts.db')
+conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
+# # Подключение к базе данных
+# conn = sqlite3.connect('accounts.db')
+# cursor = conn.cursor()
 init_db()
 
 
@@ -1608,7 +1699,7 @@ def on_click(event):
             
             if account1 and account2:
                 menu = Menu(canvas, tearoff=0)
-                menu.add_command(label="История переводов", 
+                menu.add_command(label="Движение средств", 
                                command=lambda: show_transfers_between_accounts(
                                    account1.account_number, 
                                    account2.account_number))

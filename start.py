@@ -494,7 +494,7 @@ class Account:
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
 
         # Заголовок истории переводов
-        tk.Label(scrollable_frame, text="История переводов:", font=('Arial', 12, 'bold')).pack()
+        tk.Label(scrollable_frame, text="Движение денежных средств:", font=('Arial', 12, 'bold')).pack()
 
         # Список всех переводов
         transfers_frame = tk.Frame(scrollable_frame, width=580)
@@ -643,7 +643,7 @@ def format_balance(balance, acc_type):
 def show_transfers_between_accounts(account1_num, account2_num):
     # Создаем окно
     transfer_window = Toplevel(root)
-    transfer_window.title(f"История переводов между {account1_num} и {account2_num}")
+    transfer_window.title(f"Движение денежных средств между {account1_num} и {account2_num}")
     transfer_window.geometry("800x400")
     transfer_window.grab_set()
     
@@ -660,7 +660,7 @@ def show_transfers_between_accounts(account1_num, account2_num):
 
     # Заголовок
     tk.Label(main_frame, 
-            text=f"История переводов между счетами {account1_num} и {account2_num}", 
+            text=f"Движение денежных средств между счетами {account1_num} и {account2_num}", 
             font=('Arial', 12, 'bold')).pack(pady=10)
 
     # Создаем Listbox с прокруткой
@@ -735,7 +735,7 @@ def show_reports():
 
     # Вкладка "Переводы средств"
     tab2 = tk.Frame(notebook)
-    notebook.add(tab2, text="Переводы средств")
+    notebook.add(tab2, text="Движение средств")
 
     # Вкладка "Актив/Пассив"
     tab3 = tk.Frame(notebook)
@@ -784,7 +784,7 @@ def show_reports():
         for widget in tab2.winfo_children():
             widget.destroy()
             
-        transfers_label = tk.Label(tab2, text="История переводов:", font=('Arial', 12, 'bold'))
+        transfers_label = tk.Label(tab2, text="Движение денежных средств:", font=('Arial', 12, 'bold'))
         transfers_label.pack(pady=5)
 
         transfers_listbox = Listbox(tab2, width=100, height=20, font=('Arial', 10))
@@ -1623,7 +1623,7 @@ def on_click(event):
             
             if account1 and account2:
                 menu = Menu(canvas, tearoff=0)
-                menu.add_command(label="История переводов", 
+                menu.add_command(label="Движение средств", 
                                command=lambda: show_transfers_between_accounts(
                                    account1.account_number, 
                                    account2.account_number))
