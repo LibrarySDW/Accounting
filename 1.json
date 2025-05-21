@@ -1,0 +1,738 @@
+{
+    "accounts": [
+        {
+            "account_number": 1,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 106,
+            "y": 133
+        },
+        {
+            "account_number": 2,
+            "balance": 2.0,
+            "status": "on field",
+            "x": 1127,
+            "y": 37
+        },
+        {
+            "account_number": 3,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 129,
+            "y": 386
+        },
+        {
+            "account_number": 4,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 216,
+            "y": 66
+        },
+        {
+            "account_number": 5,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 6,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 7,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 8,
+            "balance": 2.0,
+            "status": "on field",
+            "x": 1083,
+            "y": 365
+        },
+        {
+            "account_number": 9,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 10,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 798,
+            "y": 531
+        },
+        {
+            "account_number": 11,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 12,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 13,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 14,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 15,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 16,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 17,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 18,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 19,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 20,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 21,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 22,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 23,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 24,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 25,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 26,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 27,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 28,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 29,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 30,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 31,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 32,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 33,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 34,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 35,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 36,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 37,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 38,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 39,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 40,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 41,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 42,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 43,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 44,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 45,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 46,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 824,
+            "y": 47
+        },
+        {
+            "account_number": 47,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 48,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 49,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 50,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 260,
+            "y": 499
+        },
+        {
+            "account_number": 51,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 282,
+            "y": 229
+        },
+        {
+            "account_number": 52,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 53,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 54,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 55,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 56,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 57,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 58,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 59,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 60,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 61,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 62,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 63,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 64,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 65,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 66,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 67,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 68,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 552,
+            "y": 314
+        },
+        {
+            "account_number": 69,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 70,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 675,
+            "y": 266
+        },
+        {
+            "account_number": 71,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 72,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 73,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 658,
+            "y": 469
+        },
+        {
+            "account_number": 74,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 75,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 528,
+            "y": 35
+        },
+        {
+            "account_number": 76,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 952,
+            "y": 503
+        },
+        {
+            "account_number": 77,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 78,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 79,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 80,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 81,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 424,
+            "y": 166
+        },
+        {
+            "account_number": 82,
+            "balance": 3.0,
+            "status": "on field",
+            "x": 919,
+            "y": 173
+        },
+        {
+            "account_number": 83,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 84,
+            "balance": 3.0,
+            "status": "on field",
+            "x": 971,
+            "y": 322
+        },
+        {
+            "account_number": 85,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 86,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 87,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 88,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 89,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 90,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 91,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 92,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 93,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 94,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 861,
+            "y": 405
+        },
+        {
+            "account_number": 95,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 96,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 97,
+            "balance": 0.0,
+            "status": "not on field",
+            "x": null,
+            "y": null
+        },
+        {
+            "account_number": 98,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 463,
+            "y": 534
+        },
+        {
+            "account_number": 99,
+            "balance": 0.0,
+            "status": "on field",
+            "x": 946,
+            "y": 41
+        }
+    ],
+    "operations": [
+        {
+            "account_number": 2,
+            "amount": 2,
+            "operation": "Перевод (исходящий)",
+            "timestamp": "2025-05-21 08:14:51"
+        },
+        {
+            "account_number": 8,
+            "amount": 2,
+            "operation": "Перевод (входящий)",
+            "timestamp": "2025-05-21 08:14:51"
+        },
+        {
+            "account_number": 82,
+            "amount": 3,
+            "operation": "Перевод (исходящий)",
+            "timestamp": "2025-05-21 08:28:28"
+        },
+        {
+            "account_number": 84,
+            "amount": 3,
+            "operation": "Перевод (входящий)",
+            "timestamp": "2025-05-21 08:28:28"
+        }
+    ],
+    "transfers": [
+        {
+            "source_account_number": 2,
+            "target_account_number": 8,
+            "amount": 2,
+            "timestamp": "2025-05-21 08:14:51"
+        },
+        {
+            "source_account_number": 82,
+            "target_account_number": 84,
+            "amount": 3,
+            "timestamp": "2025-05-21 08:28:28"
+        }
+    ],
+    "timestamp": "2025-05-21 12:15:17"
+}

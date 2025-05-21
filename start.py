@@ -280,6 +280,7 @@ class Account:
                     messagebox.showwarning("Ошибка", "Счет получателя не найден!", parent=dialog)
                     return
                 
+                
                 # Объединенная логика для каждого типа источника
                 if source_type == 'active':
                     # Для активного счета-источника
@@ -337,12 +338,9 @@ class Account:
                             return
                     else:  # activepassive
                         # Активно-пассивный -> Активно-пассивный
-                        if source_balance >= 0: # Положительный Актив-пассив
-                            source_change = -amount
-                            target_change = amount
-                        else: # Отрицательный Актив-пассив
-                            source_change = amount
-                            target_change = -amount
+                        source_change = -amount
+                        target_change = amount
+                
                 
                 # Обновляем балансы
                 cursor.execute("UPDATE accounts SET balance=balance+? WHERE account_number=?", 
@@ -805,22 +803,22 @@ def show_reports():
         for widget in tab1.winfo_children():
             widget.destroy()
         
-        balance_label = tk.Label(tab1, text="Текущий баланс:", font=('Arial', 12, 'bold'))
-        balance_label.pack(pady=5)
+        # balance_label = tk.Label(tab1, text="Текущий баланс:", font=('Arial', 12, 'bold'))
+        # balance_label.pack(pady=5)
 
-        # Получаем балансы всех счетов на поле с учетом их типа
-        cursor.execute("SELECT balance, type FROM accounts WHERE status='on field'")
-        accounts = cursor.fetchall()
+        # # Получаем балансы всех счетов на поле с учетом их типа
+        # cursor.execute("SELECT balance, type FROM accounts WHERE status='on field'")
+        # accounts = cursor.fetchall()
         
-        total_balance = 0
-        for balance, acc_type in accounts:
-            if acc_type == 'passive' or (acc_type == 'activepassive' and balance < 0):
-                total_balance -= abs(balance)  # Для пассивных счетов вычитаем абсолютное значение
-            else:
-                total_balance += balance  # Для активных счетов добавляем значение
+        # total_balance = 0
+        # for balance, acc_type in accounts:
+        #     if acc_type == 'passive' or (acc_type == 'activepassive' and balance < 0):
+        #         total_balance -= abs(balance)  # Для пассивных счетов вычитаем абсолютное значение
+        #     else:
+        #         total_balance += balance  # Для активных счетов добавляем значение
         
-        balance_value = tk.Label(tab1, text=f"{total_balance}", font=('Arial', 14))
-        balance_value.pack(pady=5)
+        # balance_value = tk.Label(tab1, text=f"{total_balance}", font=('Arial', 14))
+        # balance_value.pack(pady=5)
 
         operations_label = tk.Label(tab1, text="Операции:", font=('Arial', 12, 'bold'))
         operations_label.pack(pady=5)
@@ -864,7 +862,8 @@ def show_reports():
         # Обновляем линии соединений после загрузки данных
         update_connection_lines()
 
-    # Функция для обновления вкладки "Актив/Пассив"
+
+    # Вкладка Актив/Пассив
     def update_balance_tab():
         # Очищаем предыдущие данные
         for widget in tab3.winfo_children():
@@ -888,9 +887,15 @@ def show_reports():
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_rowconfigure(1, weight=1)
+
+        def format_currency(value):
+            """Форматирует: отрицательные значения в скобках"""
+            if value < 0:
+                return f"({abs(value):.2f})"
+            return f"{value:.2f}"
         
         # Функция для создания колонки
-        def create_column(parent, data):
+        def create_column(parent, data, is_active_column):
             container = ttk.Frame(parent)
             container.pack(fill='both', expand=True)
             
@@ -905,24 +910,42 @@ def show_reports():
             canvas.pack(side='left', fill='both', expand=True)
             scrollbar.pack(side='right', fill='y')
             
-            total = 0
-            for category, accounts in data.items():
-                if accounts:
+            total = 0.0
+            
+            for category, items in data.items():
+                if items:
                     # Категория (выровнена по левому краю)
                     ttk.Label(scrollable_frame, 
                             text=format_category(category), 
                             font=('Arial', 11, 'underline')).pack(anchor='w', pady=(5,0))
                     
-                    # Счета (выровнены по левому краю)
-                    for acc_num, acc_name, balance in accounts:
+                    # Статьи баланса (выровнены по левому краю)
+                    for item in items:
+                        item_name, line_number, accounts_str, item_sum = item
+                        
+                        display_sum = format_currency(item_sum)
+                        
                         ttk.Label(scrollable_frame, 
-                                text=f"{acc_num} {acc_name}: {abs(balance)}", 
+                                text=f"{line_number}. {item_name}: {display_sum}", 
                                 font=('Arial', 10)).pack(anchor='w')
-                        total += balance
+                        
+                        total += item_sum
             
             return container, total
         
-        # Получаем данные
+        # Получаем все статьи баланса из таблицы balance_items
+        cursor.execute("""
+            SELECT category, item_name, line_number, related_accounts 
+            FROM balance_items 
+            ORDER BY category, line_number
+        """)
+        balance_items = cursor.fetchall()
+        
+        # Получаем текущие балансы всех счетов
+        cursor.execute("SELECT account_number, balance, type FROM accounts WHERE status='on field'")
+        account_balances = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+        
+        # Группируем статьи баланса по категориям и рассчитываем суммы
         active_data = {
             'non_current_assets': [], 
             'current_assets': []
@@ -933,62 +956,73 @@ def show_reports():
             'short_term_liabilities': []
         }
         
-        cursor.execute("""
-            SELECT account_number, name, balance, type, category 
-            FROM accounts 
-            WHERE status='on field' AND balance != 0
-        """)
-        
-        for row in cursor.fetchall():
-            account_number, name, balance, acc_type, category = row
+        for category, item_name, line_number, accounts_str in balance_items:
+            # Парсим связанные счета
+            accounts = []
+            for acc_str in accounts_str.split(','):
+                acc_str = acc_str.strip()
+                if acc_str:
+                    try:
+                        account_num = int(acc_str)
+                        accounts.append(account_num)
+                    except ValueError:
+                        continue
             
-            # Определяем, в какую колонку поместить счет
-            if acc_type == 'active':
-                # Активные счета всегда в активы
-                if category in active_data:
-                    active_data[category].append((account_number, name, balance))
-                else:
-                    # Если категория не определена, помещаем в current_assets по умолчанию
-                    active_data['current_assets'].append((account_number, name, balance))
-            
-            elif acc_type == 'passive':
-                # Пассивные счета всегда в пассивы
-                if category in passive_data:
-                    passive_data[category].append((account_number, name, balance))
-                else:
-                    # Если категория не определена, помещаем в short_term_liabilities по умолчанию
-                    passive_data['short_term_liabilities'].append((account_number, name, balance))
-            
-            elif acc_type == 'activepassive':
-                # Активно-пассивные счета распределяем по балансу
-                if balance >= 0:
-                    # Положительный баланс - в активы
-                    if category in active_data:
-                        active_data[category].append((account_number, name, balance))
+            # Рассчитываем сумму для этой статьи баланса
+            item_sum = 0.0
+            for account_num in accounts:
+                if account_num in account_balances:
+                    balance, acc_type = account_balances[account_num]
+                    
+                    # Определяем знак суммы в зависимости от типа счета и колонки
+                    if category in ['non_current_assets', 'current_assets']:
+                        # Для активов:
+                        if acc_type == 'active':
+                            item_sum += balance
+                        elif acc_type == 'passive':
+                            item_sum -= balance
+                        elif acc_type == 'activepassive':
+                            item_sum += balance  # Для активно-пассивных в активе берем как есть
                     else:
-                        active_data['current_assets'].append((account_number, name, balance))
-                else:
-                    # Отрицательный баланс - в пассивы
-                    if category in passive_data:
-                        passive_data[category].append((account_number, name, abs(balance)))
-                    else:
-                        passive_data['short_term_liabilities'].append((account_number, name, abs(balance)))
+                        # Для пассивов:
+                        if acc_type == 'passive':
+                            item_sum += balance
+                        elif acc_type == 'active':
+                            item_sum -= balance
+                        elif acc_type == 'activepassive':
+                            # Для активно-пассивных в пассиве:
+                            # положительный баланс (нам должны) - уменьшает пассив (отрицательное значение)
+                            # отрицательный баланс (мы должны) - увеличивает пассив (положительное значение)
+                            item_sum -= balance  # Ключевое изменение - используем минус вместо сложения с (-balance)
+
+                    print(f"Статья {line_number}, Счет {account_num} (тип {acc_type}), баланс: {balance}, В статье: {item_sum}")
+
+
+            # Добавляем статью в соответствующую категорию
+            item_data = (item_name, line_number, accounts_str, item_sum)
+            
+            if category in active_data:
+                active_data[category].append(item_data)
+            elif category in passive_data:
+                passive_data[category].append(item_data)
         
         # Создаем колонки
-        active_column, total_active = create_column(active_frame, active_data)
-        passive_column, total_passive = create_column(passive_frame, passive_data)
+        active_column, total_active = create_column(active_frame, active_data, is_active_column=True)
+        passive_column, total_passive = create_column(passive_frame, passive_data, is_active_column=False)
         
         # Итоги (выровнены по левому краю под своими колонками)
-        ttk.Label(main_frame, text=f"Итого Активы: {total_active}", 
+        ttk.Label(main_frame, text=f"Итого Активы: {format_currency(total_active)}", 
                 font=('Arial', 11, 'bold')).grid(row=2, column=0, sticky='w', pady=5)
-        ttk.Label(main_frame, text=f"Итого Пассивы: {total_passive}", 
+        ttk.Label(main_frame, text=f"Итого Пассивы: {format_currency(total_passive)}", 
                 font=('Arial', 11, 'bold')).grid(row=2, column=1, sticky='w', pady=5)
         
-        # # Проверка баланса
-        # if total_active != total_passive:
-        #     ttk.Label(main_frame, text="ОШИБКА: Активы и Пассивы не сходятся!", 
-        #             foreground='red', font=('Arial', 12, 'bold')).grid(row=3, columnspan=2, pady=10)
-
+        # Проверка баланса
+        if abs(total_active - total_passive) > 0.01:  # Учитываем возможные ошибки округления
+            error_label = ttk.Label(main_frame, 
+                                text=f"ОШИБКА: Активы {format_currency(total_active)} и Пассивы {format_currency(total_passive)} не сходятся!",
+                                foreground='red', 
+                                font=('Arial', 12, 'bold'))
+            error_label.grid(row=3, columnspan=2, pady=10)
 
 
     # Функция для обновления текущей вкладки
@@ -1306,6 +1340,178 @@ def show_all_accounts_info():
     create_tab_content(tab1, (1, 50))
     create_tab_content(tab2, (51, 99))
 
+# Окно Расшифровка активов баланса
+def show_balance_items_info():
+    info_window = Toplevel(root)
+    info_window.title("Расшифровка активов баланса")
+    info_window.geometry("800x600")
+    info_window.resizable(False, False)
+    info_window.transient(root)
+    info_window.grab_set()
+
+    # Центрируем окно
+    width = 800
+    height = 600
+    x = (info_window.winfo_screenwidth() // 2) - (width // 2)
+    y = (info_window.winfo_screenheight() // 2) - (height // 2)
+    info_window.geometry(f'{width}x{height}+{x}+{y}')
+
+    # Создаем основной контейнер с прокруткой
+    main_frame = tk.Frame(info_window)
+    main_frame.pack(fill='both', expand=True)
+
+    canvas = tk.Canvas(main_frame, width=800)
+    scrollbar = ttk.Scrollbar(main_frame, orient='vertical', command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas, width=780)  # Фиксируем ширину внутреннего фрейма
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all"),
+            width=780  # Устанавливаем ширину Canvas при конфигурации
+        )
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor='nw')
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    canvas.pack(side='left', fill='both', expand=True)
+    scrollbar.pack(side='right', fill='y')
+
+    # Функция для прокрутки колесиком мыши
+    def _on_mousewheel(event):
+        canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+    canvas.bind("<MouseWheel>", _on_mousewheel)
+    scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
+
+    # Получаем данные из БД, группируя по категориям
+    cursor.execute("""
+        SELECT category, item_name, line_number, description, related_accounts 
+        FROM balance_items 
+        ORDER BY category, line_number
+    """)
+    balance_items = cursor.fetchall()
+
+    # Словарь для группировки по категориям с правильным порядком
+    categories = {
+        'Актив': {
+            'non_current_assets': [],
+            'current_assets': []
+        },
+        'Пассив': {
+            'capital': [],
+            'long_term_liabilities': [],
+            'short_term_liabilities': []
+        }
+    }
+
+    for item in balance_items:
+        category = item[0]
+        # Распределяем по категориям в зависимости от типа
+        if category in ['non_current_assets', 'current_assets']:
+            categories['Актив'][category].append(item[1:])  # (item_name, line_number, description, related_accounts)
+        elif category in ['capital', 'long_term_liabilities', 'short_term_liabilities']:
+            categories['Пассив'][category].append(item[1:])
+
+    # Выводим данные по категориям
+    for section, section_categories in categories.items():
+        # Заголовок раздела (Актив или Пассив)
+        section_label = tk.Label(
+            scrollable_frame, 
+            text=section,
+            font=('Arial', 16, 'bold'),
+            bg='lightgray',
+            anchor='w'
+        )
+        section_label.pack(fill='x', padx=10, pady=(15, 5), ipady=5)
+
+        # Выводим подкатегории в правильном порядке
+        if section == 'Актив':
+            subcategories_order = ['non_current_assets', 'current_assets']
+        else:  # Пассив
+            subcategories_order = ['capital', 'long_term_liabilities', 'short_term_liabilities']
+
+        for subcategory in subcategories_order:
+            items = section_categories[subcategory]
+            if not items:
+                continue
+
+            # Заголовок подкатегории
+            subcategory_label = tk.Label(
+                scrollable_frame, 
+                text=format_category(subcategory),
+                font=('Arial', 14, 'bold'),
+                anchor='w'
+            )
+            subcategory_label.pack(fill='x', padx=20, pady=(15, 5), anchor='w')
+
+            # Выводим все элементы подкатегории
+            for item in items:
+                item_name, line_number, description, related_accounts = item
+
+                # Фрейм для элемента
+                item_frame = tk.Frame(scrollable_frame, bd=1, relief='groove', padx=10, pady=10)
+                item_frame.pack(fill='x', padx=20, pady=5)
+
+                # Название и номер строки
+                name_number_frame = tk.Frame(item_frame)
+                name_number_frame.pack(fill='x', pady=(0, 5))
+
+                tk.Label(
+                    name_number_frame, 
+                    text=f"{item_name} (строка {line_number})",
+                    font=('Arial', 12, 'bold'),
+                    anchor='w'
+                ).pack(side='left')
+
+                # Связанные счета
+                accounts_label = tk.Label(
+                    name_number_frame,
+                    text=f"Счета: {related_accounts}",
+                    font=('Arial', 10),
+                    fg='gray',
+                    anchor='w'
+                )
+                accounts_label.pack(side='right')
+
+                # Описание (с прокруткой)
+                desc_frame = tk.Frame(item_frame)
+                desc_frame.pack(fill='x')
+
+                tk.Label(desc_frame, text="Описание:", font=('Arial', 10)).pack(anchor='w')
+
+                desc_text = tk.Text(
+                    desc_frame,
+                    width=70,
+                    height=4,
+                    wrap='word',
+                    font=('Arial', 10),
+                    padx=5,
+                    pady=5,
+                    bd=1,
+                    relief='solid'
+                )
+                desc_scroll = ttk.Scrollbar(desc_frame, orient='vertical', command=desc_text.yview)
+                desc_text.configure(yscrollcommand=desc_scroll.set)
+
+                desc_text.insert('1.0', description)
+                desc_text.config(state='disabled')
+
+                desc_text.pack(side='left', fill='x', expand=True)
+                desc_scroll.pack(side='right', fill='y')
+
+        # Разделитель между разделами
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
+
+    # Если нет данных
+    if not balance_items:
+        tk.Label(
+            scrollable_frame,
+            text="Нет данных о расшифровке баланса",
+            font=('Arial', 12),
+            fg='gray'
+        ).pack(pady=20)
 
 
 
@@ -1327,6 +1533,7 @@ def log_transfer(source_account_number, target_account_number, amount):
     cursor.execute("INSERT INTO operations (account_number, amount, operation, timestamp) VALUES (?, ?, ?, datetime('now'))",
                    (target_account_number, amount, "Перевод (входящий)"))
     conn.commit()
+
 
 def init_db():
     cursor.execute('''
@@ -1383,21 +1590,26 @@ def init_db():
             FOREIGN KEY(target_account_number) REFERENCES accounts(account_number)
         )
     ''')
-    
-    # Создаем тестовые счета, если их нет
-    cursor.execute("SELECT COUNT(*) FROM accounts")
-    if cursor.fetchone()[0] == 0:
-        accounts_data = [
-            (1, "Касса", "Наличные денежные средства", 'asset', 'current_assets'),
-            (2, "Расчетный счет", "Деньги на банковском счете", 'asset', 'current_assets'),
-            (3, "Основные средства", "Оборудование, здания", 'asset', 'non_current_assets'),
-            (4, "Кредиторская задолженность", "Долги перед поставщиками", 'liability', 'short_term_liabilities'),
-            (5, "Займы и кредиты", "Банковские кредиты", 'liability', 'long_term_liabilities'),
-            (6, "Уставный капитал", "Средства учредителей", 'liability', 'capital')
-        ]
-        for account_number, name, description, acc_type, category in accounts_data:
-            cursor.execute("INSERT INTO accounts (account_number, name, description, type, category) VALUES (?, ?, ?, ?, ?)",
-                        (account_number, name, description, acc_type, category))
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS balance_items (
+            id INTEGER PRIMARY KEY,
+            category TEXT NOT NULL CHECK(category IN (
+                'non_current_assets', 
+                'current_assets', 
+                'capital', 
+                'long_term_liabilities', 
+                'short_term_liabilities',
+                'undefined'
+            )) DEFAULT 'undefined',               -- Категория статьи баланса
+            item_name TEXT NOT NULL,              -- Название строки в балансе
+            line_number INTEGER NOT NULL,         -- Номер строки в балансе
+            description TEXT,                     -- Описание текст
+            related_accounts TEXT                 -- Связанные счета в виде текста, по типу "4, -5"
+        )
+    ''')
+    conn.commit()
+
 
 def on_closing():
     if messagebox.askokcancel("Выход", "Вы уверены, что хотите выйти?"):
@@ -1413,6 +1625,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 
 # Подключение к базе данных
 db_path = resource_path('accounts.db')
@@ -1533,8 +1746,9 @@ report_menu.add_command(label="Посмотреть отчёты", command=show_
 # Пункт "Инфо"
 file_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Инфо", menu=file_menu)
-file_menu.add_command(label="Связи счетов", command=show_account_connections)
+file_menu.add_command(label="Расшифровка активов баланса", command=show_balance_items_info)
 file_menu.add_command(label="Инфо по всем счетам", command=show_all_accounts_info)
+file_menu.add_command(label="Инфо по связям счетов", command=show_account_connections)
 
 # Пункт "Настройки"
 settings_menu = Menu(menu_bar, tearoff=0)
