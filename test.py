@@ -773,11 +773,11 @@ def show_transfers_between_accounts(account1_num, account2_num):
 def show_reports():
     report_window = Toplevel(root)
     report_window.title("Отчёты")
-    report_window.geometry("800x600")
+    report_window.geometry("900x630")
     report_window.grab_set()  # Захватываем фокус
 
-    width = 800
-    height = 600
+    width = 900
+    height = 630
     x = (report_window.winfo_screenwidth() // 2) - (width // 2)
     y = (report_window.winfo_screenheight() // 2) - (height // 2)
     report_window.geometry(f'{width}x{height}+{x}+{y}')
@@ -797,28 +797,17 @@ def show_reports():
     tab3 = tk.Frame(notebook)
     notebook.add(tab3, text="Актив/Пассив")
 
+    # Вкладка "Финансовые результаты"
+    tab4 = tk.Frame(notebook)
+    notebook.add(tab4, text="Финансовые результаты")
+
+
     # Функция для обновления вкладки "Общая информация"
     def update_general_info_tab():
         # Очищаем предыдущие данные
         for widget in tab1.winfo_children():
             widget.destroy()
         
-        # balance_label = tk.Label(tab1, text="Текущий баланс:", font=('Arial', 12, 'bold'))
-        # balance_label.pack(pady=5)
-
-        # # Получаем балансы всех счетов на поле с учетом их типа
-        # cursor.execute("SELECT balance, type FROM accounts WHERE status='on field'")
-        # accounts = cursor.fetchall()
-        
-        # total_balance = 0
-        # for balance, acc_type in accounts:
-        #     if acc_type == 'passive' or (acc_type == 'activepassive' and balance < 0):
-        #         total_balance -= abs(balance)  # Для пассивных счетов вычитаем абсолютное значение
-        #     else:
-        #         total_balance += balance  # Для активных счетов добавляем значение
-        
-        # balance_value = tk.Label(tab1, text=f"{total_balance}", font=('Arial', 14))
-        # balance_value.pack(pady=5)
 
         operations_label = tk.Label(tab1, text="Операции:", font=('Arial', 12, 'bold'))
         operations_label.pack(pady=5)
@@ -862,78 +851,80 @@ def show_reports():
         # Обновляем линии соединений после загрузки данных
         update_connection_lines()
 
-
     # Вкладка Актив/Пассив
     def update_balance_tab():
+        # Создаем локальный словарь для хранения изменений в текущей сессии
+        current_changes = {}
+        
         # Очищаем предыдущие данные
         for widget in tab3.winfo_children():
             widget.destroy()
+
+        # Создаем основной контейнер с прокруткой
+        container = ttk.Frame(tab3)
+        container.pack(fill='both', expand=True)
         
-        # Создаем основной контейнер
-        main_frame = ttk.Frame(tab3)
+        canvas = tk.Canvas(container)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Функция для форматирования валюты
+        def format_currency(value):
+            """Форматирует: отрицательные значения в скобках"""
+            try:
+                num = float(value) if isinstance(value, str) else value
+                if num < 0:
+                    return f"({abs(num):,.2f})"
+                return f"{num:,.2f}"
+            except (ValueError, TypeError):
+                return str(value)
+        
+        # Создаем главный фрейм для двух колонок
+        main_frame = ttk.Frame(scrollable_frame)
         main_frame.pack(fill='both', expand=True, padx=10, pady=10)
         
-        # Заголовки столбцов (выровнены по левому краю)
-        ttk.Label(main_frame, text="АКТИВЫ", font=('Arial', 12, 'bold'), anchor='w').grid(row=0, column=0, sticky='w', padx=5, pady=5)
-        ttk.Label(main_frame, text="ПАССИВЫ", font=('Arial', 12, 'bold'), anchor='w').grid(row=0, column=1, sticky='w', padx=5, pady=5)
+        # Стиль для элементов
+        style = ttk.Style()
+        style.configure("Bold.TLabel", font=('Arial', 10, 'bold'))
+        style.configure("Subheader.TLabel", font=('Arial', 10, 'bold'), background="#f0f0f0")
+        style.configure("Total.TLabel", font=('Arial', 10, 'bold'), background="#e0e0e0")
+        style.configure("Changed.TLabel", foreground='red')
         
-        # Создаем фреймы для колонок с прокруткой
+        # Колонка активов
         active_frame = ttk.Frame(main_frame)
+        active_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
+        
+        # Колонка пассивов
         passive_frame = ttk.Frame(main_frame)
-        active_frame.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
-        passive_frame.grid(row=1, column=1, sticky='nsew', padx=5, pady=5)
+        passive_frame.grid(row=0, column=1, sticky="nsew")
+        
+        # Фрейм для итоговых строк
+        totals_frame = ttk.Frame(main_frame)
+        totals_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(10, 0))
         
         # Настраиваем пропорции
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
-        main_frame.grid_rowconfigure(1, weight=1)
-
-        def format_currency(value):
-            """Форматирует: отрицательные значения в скобках"""
-            if value < 0:
-                return f"({abs(value):.2f})"
-            return f"{value:.2f}"
+        main_frame.grid_rowconfigure(0, weight=1)
         
-        # Функция для создания колонки
-        def create_column(parent, data, is_active_column):
-            container = ttk.Frame(parent)
-            container.pack(fill='both', expand=True)
-            
-            canvas = tk.Canvas(container)
-            scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
-            scrollable_frame = ttk.Frame(canvas)
-            
-            scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-            canvas.create_window((0, 0), window=scrollable_frame, anchor='nw')
-            canvas.configure(yscrollcommand=scrollbar.set)
-            
-            canvas.pack(side='left', fill='both', expand=True)
-            scrollbar.pack(side='right', fill='y')
-            
-            total = 0.0
-            
-            for category, items in data.items():
-                if items:
-                    # Категория (выровнена по левому краю)
-                    ttk.Label(scrollable_frame, 
-                            text=format_category(category), 
-                            font=('Arial', 11, 'underline')).pack(anchor='w', pady=(5,0))
-                    
-                    # Статьи баланса (выровнены по левому краю)
-                    for item in items:
-                        item_name, line_number, accounts_str, item_sum = item
-                        
-                        display_sum = format_currency(item_sum)
-                        
-                        ttk.Label(scrollable_frame, 
-                                text=f"{line_number}. {item_name}: {display_sum}", 
-                                font=('Arial', 10)).pack(anchor='w')
-                        
-                        total += item_sum
-            
-            return container, total
+        # Заголовки колонок
+        ttk.Label(active_frame, text="АКТИВЫ", style="Bold.TLabel").pack(fill="x", pady=(0, 10))
+        ttk.Label(passive_frame, text="ПАССИВЫ", style="Bold.TLabel").pack(fill="x", pady=(0, 10))
         
-        # Получаем все статьи баланса из таблицы balance_items
+        # Получаем текущие значения всех статей
         cursor.execute("""
             SELECT category, item_name, line_number, related_accounts 
             FROM balance_items 
@@ -941,88 +932,305 @@ def show_reports():
         """)
         balance_items = cursor.fetchall()
         
-        # Получаем текущие балансы всех счетов
         cursor.execute("SELECT account_number, balance, type FROM accounts WHERE status='on field'")
         account_balances = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+
+        # Получаем последние операции для определения изменений
+        cursor.execute("""
+            SELECT account_number, amount, operation, timestamp 
+            FROM operations 
+            ORDER BY timestamp DESC 
+            LIMIT 2
+        """)
+        recent_operations = cursor.fetchall()
         
-        # Группируем статьи баланса по категориям и рассчитываем суммы
-        active_data = {
-            'non_current_assets': [], 
-            'current_assets': []
-        }
-        passive_data = {
-            'capital': [], 
-            'long_term_liabilities': [], 
-            'short_term_liabilities': []
-        }
+        # Определяем, какие счета были изменены в последних операциях
+        changed_accounts = set()
+        if len(recent_operations) == 2 and recent_operations[0][2] == "Добавление":
+            # Если вторая операция - "Добавление", берем только ее
+            changed_accounts.add(recent_operations[0][0])
+        else:
+            # Иначе берем все операции
+            for account_number, amount, operation, timestamp in recent_operations:
+                changed_accounts.add(account_number)
+        
+        # Группируем статьи баланса и вычисляем текущие значения
+        active_data = {'non_current_assets': [], 'current_assets': []}
+        passive_data = {'capital': [], 'long_term_liabilities': [], 'short_term_liabilities': []}
         
         for category, item_name, line_number, accounts_str in balance_items:
-            # Парсим связанные счета
-            accounts = []
-            for acc_str in accounts_str.split(','):
-                acc_str = acc_str.strip()
-                if acc_str:
-                    try:
-                        account_num = int(acc_str)
-                        accounts.append(account_num)
-                    except ValueError:
-                        continue
-            
-            # Рассчитываем сумму для этой статьи баланса
+            accounts = [int(acc.strip()) for acc in accounts_str.split(',') if acc.strip().isdigit()]
             item_sum = 0.0
+            
             for account_num in accounts:
                 if account_num in account_balances:
                     balance, acc_type = account_balances[account_num]
                     
-                    # Определяем знак суммы в зависимости от типа счета и колонки
                     if category in ['non_current_assets', 'current_assets']:
-                        # Для активов:
                         if acc_type == 'active':
                             item_sum += balance
                         elif acc_type == 'passive':
                             item_sum -= balance
                         elif acc_type == 'activepassive':
-                            item_sum += balance  # Для активно-пассивных в активе берем как есть
+                            item_sum += balance
                     else:
-                        # Для пассивов:
                         if acc_type == 'passive':
                             item_sum += balance
                         elif acc_type == 'active':
                             item_sum -= balance
                         elif acc_type == 'activepassive':
-                            # Для активно-пассивных в пассиве:
-                            # положительный баланс (нам должны) - уменьшает пассив (отрицательное значение)
-                            # отрицательный баланс (мы должны) - увеличивает пассив (положительное значение)
-                            item_sum -= balance  # Ключевое изменение - используем минус вместо сложения с (-balance)
-
-                    print(f"Статья {line_number}, Счет {account_num} (тип {acc_type}), баланс: {balance}, В статье: {item_sum}")
-
-
-            # Добавляем статью в соответствующую категорию
-            item_data = (item_name, line_number, accounts_str, item_sum)
+                            item_sum -= balance
             
+            # Проверяем, была ли статья изменена (если связанные счета в changed_accounts)
+            is_changed = any(acc_num in changed_accounts for acc_num in accounts)
+            if is_changed:
+                current_changes[line_number] = item_sum
+            
+            # Добавляем данные для отображения
+            item_data = (line_number, item_name, item_sum, is_changed)
             if category in active_data:
                 active_data[category].append(item_data)
             elif category in passive_data:
                 passive_data[category].append(item_data)
         
-        # Создаем колонки
-        active_column, total_active = create_column(active_frame, active_data, is_active_column=True)
-        passive_column, total_passive = create_column(passive_frame, passive_data, is_active_column=False)
+        # Функция для создания подтаблицы
+        def create_subtable(parent, title, items):
+            # Заголовок подтаблицы
+            ttk.Label(parent, text=title, style="Subheader.TLabel").pack(fill="x", pady=(10, 5))
+            
+            # Фрейм для таблицы
+            table_frame = ttk.Frame(parent)
+            table_frame.pack(fill="x")
+            
+            # Добавляем статьи
+            for line_num, name, amount, is_changed in items:
+                row_frame = ttk.Frame(table_frame)
+                row_frame.pack(fill="x", pady=1)
+                
+                # Определяем стиль в зависимости от наличия изменений
+                style_used = "Changed.TLabel" if is_changed else "TLabel"
+                
+                # Номер статьи
+                ttk.Label(row_frame, text=str(line_num), width=6, anchor="e", 
+                        style=style_used, borderwidth=1, relief="solid", padding=2).pack(side="left")
+                
+                # Название статьи
+                ttk.Label(row_frame, text=name, anchor="w", 
+                        style=style_used, borderwidth=1, relief="solid", padding=2).pack(side="left", fill="x", expand=True)
+                
+                # Сумма
+                ttk.Label(row_frame, text=format_currency(amount), width=12, anchor="e", 
+                        style=style_used, borderwidth=1, relief="solid", padding=2).pack(side="left")
         
-        # Итоги (выровнены по левому краю под своими колонками)
-        ttk.Label(main_frame, text=f"Итого Активы: {format_currency(total_active)}", 
-                font=('Arial', 11, 'bold')).grid(row=2, column=0, sticky='w', pady=5)
-        ttk.Label(main_frame, text=f"Итого Пассивы: {format_currency(total_passive)}", 
-                font=('Arial', 11, 'bold')).grid(row=2, column=1, sticky='w', pady=5)
+        # Создаем подтаблицы для активов
+        create_subtable(active_frame, "ВНЕОБОРОТНЫЕ АКТИВЫ", active_data['non_current_assets'])
+        create_subtable(active_frame, "ОБОРОТНЫЕ АКТИВЫ", active_data['current_assets'])
+        
+        # Создаем подтаблицы для пассивов
+        create_subtable(passive_frame, "КАПИТАЛ И РЕЗЕРВЫ", passive_data['capital'])
+        create_subtable(passive_frame, "ДОЛГОСРОЧНЫЕ ОБЯЗАТЕЛЬСТВА", passive_data['long_term_liabilities'])
+        create_subtable(passive_frame, "КРАТКОСРОЧНЫЕ ОБЯЗАТЕЛЬСТВА", passive_data['short_term_liabilities'])
+        
+        # Считаем итоги
+        total_active = sum(item[2] for sublist in active_data.values() for item in sublist)
+        total_passive = sum(item[2] for sublist in passive_data.values() for item in sublist)
+        
+        # Добавляем итоговые строки на одном уровне
+        ttk.Label(totals_frame, text=f"Итого активы: {format_currency(total_active)}", 
+                style="Total.TLabel").pack(side="left", fill="x", expand=True)
+        
+        ttk.Label(totals_frame, text=f"Итого пассивы: {format_currency(total_passive)}", 
+                style="Total.TLabel").pack(side="left", fill="x", expand=True)
         
         # Проверка баланса
-        if abs(total_active - total_passive) > 0.01:  # Учитываем возможные ошибки округления
-            error_label = ttk.Label(main_frame, 
-                                text=f"ОШИБКА: Активы {format_currency(total_active)} и Пассивы {format_currency(total_passive)} не сходятся!",
-                                foreground='red', 
-                                font=('Arial', 12, 'bold'))
-            error_label.grid(row=3, columnspan=2, pady=10)
+        if abs(total_active - total_passive) > 0.01:
+            error_frame = ttk.Frame(scrollable_frame)
+            error_frame.pack(fill='x', padx=10, pady=10)
+            
+            ttk.Label(error_frame, 
+                    text=f"ОШИБКА: Активы {format_currency(total_active)} и Пассивы {format_currency(total_passive)} не сходятся!",
+                    foreground='red', 
+                    font=('Arial', 12, 'bold')).pack()
+
+    # Функция для обновления вкладки "Финансовые результаты"
+    def update_financial_results_tab():
+        # Очищаем предыдущие данные
+        for widget in tab4.winfo_children():
+            widget.destroy()
+        
+        # Создаем основной контейнер с прокруткой
+        container = ttk.Frame(tab4)
+        container.pack(fill='both', expand=True)
+        
+        canvas = tk.Canvas(container)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Функция для форматирования валюты
+        def format_currency(value):
+            """Форматирует: отрицательные значения в скобках"""
+            try:
+                num = float(value) if isinstance(value, str) else value
+                if num < 0:
+                    return f"({abs(num):,.2f})"
+                return f"{num:,.2f}"
+            except (ValueError, TypeError):
+                return str(value)
+        
+        # Функция для расчета суммы по проводкам
+        def calculate_transactions_sum(transactions_str):
+            if not transactions_str:
+                return 0.0
+            
+            total = 0.0
+            transactions = [t.strip() for t in transactions_str.split(',') if t.strip()]
+            
+            for transaction in transactions:
+                try:
+                    source, target = transaction.split('-')
+                    source = source.strip()
+                    target = target.strip()
+                    
+                    # Ищем сумму переводов между этими счетами
+                    cursor.execute("""
+                        SELECT SUM(amount) 
+                        FROM transfers 
+                        WHERE source_account_number=? AND target_account_number=?
+                    """, (source, target))
+                    sum_amount = cursor.fetchone()[0] or 0.0
+                    total += sum_amount
+                except ValueError:
+                    continue
+            
+            return total
+        
+        # Функция для расчета суммы по формуле
+        def calculate_formula_sum(formula_str, results_dict):
+            if not formula_str:
+                return 0.0
+            
+            try:
+                # Разбиваем формулу на компоненты
+                components = [c.strip() for c in formula_str.split(',') if c.strip()]
+                total = 0.0
+                
+                for comp in components:
+                    sign = 1
+                    line_num = comp
+                    
+                    if comp.startswith('-'):
+                        sign = -1
+                        line_num = comp[1:]
+                    
+                    if line_num in results_dict:
+                        total += sign * results_dict[line_num]
+                
+                return total
+            except:
+                return 0.0
+        
+        # Заголовок
+        ttk.Label(scrollable_frame, text="ФИНАНСОВЫЕ РЕЗУЛЬТАТЫ", 
+                font=('Arial', 14, 'bold')).pack(pady=10)
+        
+        # Получаем данные из таблицы financial_results_items и сортируем их
+        cursor.execute("""
+            SELECT line_number, item_name, transactions, line_formula 
+            FROM financial_results_items 
+            ORDER BY 
+                CAST(line_number/100 AS INTEGER),  -- Группируем по первым двум цифрам
+                CASE WHEN line_number % 100 = 0 THEN 1 ELSE 0 END,  -- Сначала обычные строки
+                line_number  -- Затем итоговые (оканчивающиеся на 00)
+        """)
+        financial_items = cursor.fetchall()
+        
+        if not financial_items:
+            ttk.Label(scrollable_frame, text="Нет данных о финансовых результатах",
+                    font=('Arial', 12)).pack(pady=20)
+            return
+        
+        # Создаем таблицу
+        table_frame = ttk.Frame(scrollable_frame)
+        table_frame.pack(fill='x', padx=10, pady=5)
+        
+        # Заголовки столбцов
+        headers = ["Номер", "Наименование", "Сумма"]
+        for col, header in enumerate(headers):
+            ttk.Label(table_frame, text=header, font=('Arial', 10, 'bold'), 
+                    borderwidth=1, relief="solid", padding=5).grid(row=0, column=col, sticky="nsew")
+        
+        # Настраиваем ширину столбцов
+        table_frame.grid_columnconfigure(0, weight=1, minsize=80)
+        table_frame.grid_columnconfigure(1, weight=3, minsize=300)
+        table_frame.grid_columnconfigure(2, weight=1, minsize=150)
+        
+        current_group = None
+        row = 1  # Начинаем с 1, так как 0 - заголовки
+        
+        # Словарь для хранения результатов по строкам (для формул)
+        results_dict = {}
+        
+        for line_number, item_name, transactions, line_formula in financial_items:
+            group = line_number // 100  # Получаем группу (первые две цифры)
+            
+            # Если группа изменилась, добавляем разделитель (кроме первой группы)
+            if group != current_group and current_group is not None:
+                # Добавляем разделитель между группами
+                separator = ttk.Separator(table_frame, orient='horizontal')
+                separator.grid(row=row, column=0, columnspan=3, sticky="ew", pady=5)
+                row += 1
+            
+            current_group = group
+            
+            # Рассчитываем сумму
+            amount = 0.0
+            
+            # 1. Считаем сумму по проводкам
+            transactions_sum = calculate_transactions_sum(transactions)
+            
+            # 2. Если есть формула, считаем по формуле
+            if line_formula:
+                formula_sum = calculate_formula_sum(line_formula, results_dict)
+                amount = formula_sum
+            else:
+                amount = transactions_sum
+            
+            # Сохраняем результат для использования в других формулах
+            results_dict[str(line_number)] = amount
+            
+            # Номер строки
+            ttk.Label(table_frame, text=str(line_number), font=('Arial', 10),
+                    borderwidth=1, relief="solid", padding=5).grid(row=row, column=0, sticky="nsew")
+            
+            # Наименование
+            ttk.Label(table_frame, text=item_name, font=('Arial', 10),
+                    borderwidth=1, relief="solid", padding=5).grid(row=row, column=1, sticky="nsew")
+            
+            # Сумма
+            ttk.Label(table_frame, text=format_currency(amount), font=('Arial', 10),
+                    borderwidth=1, relief="solid", padding=5).grid(row=row, column=2, sticky="nsew")
+            
+            row += 1
+        
+        # Прокрутка колесиком мыши
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+        scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
 
 
     # Функция для обновления текущей вкладки
@@ -1034,6 +1242,8 @@ def show_reports():
             update_transfers_tab()
         elif current_tab == 2:  # Актив/Пассив
             update_balance_tab()
+        elif current_tab == 3:  # Финансовые результаты
+            update_financial_results_tab()
     
     # Привязываем обработчик изменения вкладки
     notebook.bind("<<NotebookTabChanged>>", on_tab_changed)
@@ -1513,6 +1723,147 @@ def show_balance_items_info():
             fg='gray'
         ).pack(pady=20)
 
+# Функция для показа информации о финансовых результатах
+def show_financial_results_info():
+    info_window = Toplevel(root)
+    info_window.title("Финансовые результаты - Справочник")
+    info_window.geometry("900x600")
+    info_window.resizable(False, False)
+    info_window.transient(root)
+    info_window.grab_set()
+
+    # Центрируем окно
+    width = 900
+    height = 600
+    x = (info_window.winfo_screenwidth() // 2) - (width // 2)
+    y = (info_window.winfo_screenheight() // 2) - (height // 2)
+    info_window.geometry(f'{width}x{height}+{x}+{y}')
+
+    # Стили
+    style = ttk.Style()
+    style.configure('Header.TLabel', font=('Arial', 10, 'bold'), padding=3)
+    style.configure('Data.TLabel', font=('Arial', 9), padding=2)
+
+    # Главный контейнер
+    main_frame = ttk.Frame(info_window)
+    main_frame.pack(fill='both', expand=True, padx=5, pady=5)
+
+    # Canvas и Scrollbar
+    canvas = tk.Canvas(main_frame, highlightthickness=0, width=880)
+    scrollbar = ttk.Scrollbar(main_frame, orient='vertical', command=canvas.yview)
+    table_frame = ttk.Frame(canvas)
+
+    # Настройка прокрутки
+    table_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+
+    canvas.create_window((0, 0), window=table_frame, anchor='nw')
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Упаковка
+    canvas.pack(side='left', fill='both', expand=True)
+    scrollbar.pack(side='right', fill='y')
+
+    # Получение и сортировка данных
+    cursor.execute("""
+        SELECT line_number, item_name, description, transactions, line_formula 
+        FROM financial_results_items 
+        ORDER BY 
+            CAST(line_number/100 AS INTEGER),  -- Группируем по первым двум цифрам
+            CASE WHEN line_number % 100 = 0 THEN 1 ELSE 0 END,  -- Сначала обычные строки
+            line_number  -- Затем итоговые (оканчивающиеся на 00)
+    """)
+    items = cursor.fetchall()
+
+    if not items:
+        ttk.Label(table_frame, text="Нет данных").pack(pady=20)
+        return
+
+    # Заголовок таблицы
+    ttk.Label(table_frame, text="Справочник строк финансовых результатов", 
+             font=('Arial', 12, 'bold')).grid(row=0, column=0, columnspan=5, pady=5)
+
+    # Ширины столбцов (сумма = 880)
+    col_widths = [50, 150, 400, 200, 80]
+    wrap_lengths = [45, 140, 390, 190, 70]
+
+    # Заголовки столбцов
+    headers = ["Номер", "Наименование", "Описание", "Проводки", "Формула"]
+    for col, (header, width) in enumerate(zip(headers, col_widths)):
+        header_cell = ttk.Frame(table_frame, width=width, height=25)
+        header_cell.grid(row=1, column=col, sticky='nsew')
+        ttk.Label(header_cell, text=header, style='Header.TLabel', 
+                wraplength=wrap_lengths[col]).pack(fill='both', expand=True)
+
+    # Данные таблицы
+    row_idx = 2  # Начинаем с 2, так как 0-заголовок, 1-заголовки столбцов
+
+    for line_number, item_name, description, transactions, line_formula in items:
+        # Высота строки (5 строк для описания)
+        row_height = 85
+        
+        # Код строки
+        cell = ttk.Frame(table_frame, width=col_widths[0], height=row_height)
+        cell.grid(row=row_idx, column=0, sticky='nsew')
+        ttk.Label(cell, text=str(line_number), style='Data.TLabel', 
+                wraplength=wrap_lengths[0]).place(relx=0.5, rely=0.5, anchor='center')
+        
+        # Наименование
+        cell = ttk.Frame(table_frame, width=col_widths[1], height=row_height)
+        cell.grid(row=row_idx, column=1, sticky='nsew')
+        ttk.Label(cell, text=item_name, style='Data.TLabel', 
+                wraplength=wrap_lengths[1]).place(relx=0.5, rely=0.5, anchor='center')
+        
+        # Описание (с прокруткой)
+        cell = ttk.Frame(table_frame, width=col_widths[2], height=row_height)
+        cell.grid(row=row_idx, column=2, sticky='nsew')
+        
+        text_frame = ttk.Frame(cell)
+        text_frame.pack(fill='both', expand=True, padx=2, pady=2)
+        
+        text = tk.Text(text_frame, wrap='word', font=('Arial', 9), 
+                     height=5, width=col_widths[2]//8,
+                     borderwidth=0, highlightthickness=0)
+        text.insert('1.0', description or '')
+        text.config(state='disabled')
+        
+        text_scroll = ttk.Scrollbar(text_frame, orient='vertical', command=text.yview)
+        text.configure(yscrollcommand=text_scroll.set)
+        
+        text.pack(side='left', fill='both', expand=True)
+        text_scroll.pack(side='right', fill='y')
+        
+        # Проводки
+        cell = ttk.Frame(table_frame, width=col_widths[3], height=row_height)
+        cell.grid(row=row_idx, column=3, sticky='nsew')
+        
+        # Отображаем проводки как есть
+        ttk.Label(cell, text=transactions or '', style='Data.TLabel', 
+                wraplength=wrap_lengths[3]).place(relx=0.5, rely=0.5, anchor='center')
+        
+        # Формула
+        cell = ttk.Frame(table_frame, width=col_widths[4], height=row_height)
+        cell.grid(row=row_idx, column=4, sticky='nsew')
+        ttk.Label(cell, text=line_formula or '', style='Data.TLabel', 
+                wraplength=wrap_lengths[4]).place(relx=0.5, rely=0.5, anchor='center')
+        
+        row_idx += 1
+
+    # Настройка столбцов
+    for i in range(5):
+        table_frame.grid_columnconfigure(i, weight=1 if i == 2 else 0)
+
+    # Прокрутка колесиком
+    def _on_mousewheel(event):
+        canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+    canvas.bind("<MouseWheel>", _on_mousewheel)
+    table_frame.bind("<MouseWheel>", _on_mousewheel)
+
 
 
 def log_operation(account_number, amount, operation):
@@ -1608,6 +1959,17 @@ def init_db():
             related_accounts TEXT                 -- Связанные счета в виде текста, по типу "4, -5"
         )
     ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS financial_results_items (
+            id INTEGER PRIMARY KEY,
+            line_number INTEGER NOT NULL UNIQUE,  -- Код строки (2110, 2120)
+            item_name TEXT NOT NULL,             -- Название строки
+            description TEXT,                    -- Описание
+            transactions TEXT,        -- Проводки в формате "23-90, 21-90, 66-91"
+            line_formula TEXT DEFAULT ''         -- Формула из других строк ("2110,-2120")
+        )
+    ''')
     conn.commit()
 
 
@@ -1627,13 +1989,13 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
+# Глобальный словарь для хранения измененных статей баланса
+changed_balance_items = {}
+
 # Подключение к базе данных
 db_path = resource_path('accounts.db')
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
-# # Подключение к базе данных
-# conn = sqlite3.connect('accounts.db')
-# cursor = conn.cursor()
 init_db()
 
 
@@ -1645,6 +2007,10 @@ def confirm_clear_balances():
 
 # Функция очистки балансов
 def clear_balances():
+    global changed_balance_items
+    # Очищаем список измененных статей
+    changed_balance_items.clear()
+
     # Удаляем все линии с canvas
     for line in canvas.find_all():
         if canvas.type(line) == 'line':
@@ -1679,6 +2045,10 @@ def confirm_clear_field():
 
 # Функция очистки поля
 def clear_field():
+    global changed_balance_items
+    # Очищаем список измененных статей
+    changed_balance_items.clear()
+
     # Удаляем все линии с canvas
     for line in canvas.find_all():
         if canvas.type(line) == 'line':
@@ -1747,6 +2117,7 @@ report_menu.add_command(label="Посмотреть отчёты", command=show_
 file_menu = Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Инфо", menu=file_menu)
 file_menu.add_command(label="Расшифровка активов баланса", command=show_balance_items_info)
+file_menu.add_command(label="Финансовые результаты", command=show_financial_results_info)
 file_menu.add_command(label="Инфо по всем счетам", command=show_all_accounts_info)
 file_menu.add_command(label="Инфо по связям счетов", command=show_account_connections)
 
@@ -1792,6 +2163,7 @@ def save_current_state():
         'accounts': [],
         'operations': [],
         'transfers': [],
+        'changed_balance_items': changed_balance_items,
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     
@@ -1853,6 +2225,9 @@ def load_saved_state():
     try:
         with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
+        
+        # Загружаем изменения статей
+        changed_balance_items = data.get('changed_balance_items', {})
     except Exception as e:
         messagebox.showerror("Ошибка", f"Не удалось загрузить файл: {str(e)}", parent=root)
         return

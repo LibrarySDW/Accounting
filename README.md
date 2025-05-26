@@ -8,5 +8,5 @@
 pyinstaller -F -w  --add-data "accounts.db;." start.py
 ```
 
-Версия приложения 21.05.2025
+Версия приложения 26.05.2025
 
