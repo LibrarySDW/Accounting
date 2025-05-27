@@ -102,41 +102,58 @@ class Account:
 
     # Передвижение счетов и линий
     def move(self, event):
+        # Размеры фрейма операций (должны быть объявлены как глобальные константы)
+        FRAME_WIDTH = OPERATIONS_FRAME_WIDTH
+        FRAME_HEIGHT = OPERATIONS_FRAME_HEIGHT
+        
         # Проверяем границы Canvas
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
         
-        # Рассчитываем новые координаты с учетом центрального захвата
-        new_x = max(0, min(event.x - 60, canvas_width - 120))  # 60 - половина ширины
-        new_y = max(0, min(event.y - 40, canvas_height - 80))  # 40 - половина высоты
+        # Рассчитываем новые координаты с учетом центра
+        new_x = event.x - 60
+        new_y = event.y - 40
+        
+        # Проверяем пересечение с областью фрейма операций
+        if (new_x < FRAME_WIDTH and new_y < FRAME_HEIGHT):
+            # Если курсор в зоне фрейма - корректируем координаты
+            if self.x >= FRAME_WIDTH:  # Если счет был справа от фрейма
+                new_x = FRAME_WIDTH  # Ставим у правой границы фрейма
+            elif self.y >= FRAME_HEIGHT:  # Если счет был под фреймом
+                new_y = FRAME_HEIGHT  # Ставим у нижней границы фрейма
+            else:  # Если счет уже в зоне фрейма - оставляем на месте
+                if abs(new_x - self.x) > abs(new_y - self.y):
+                    new_x = FRAME_WIDTH
+                else:
+                    new_y = FRAME_HEIGHT
+            
+        # Ограничиваем границами canvas
+        new_x = max(0, min(new_x, canvas_width - 120))
+        new_y = max(0, min(new_y, canvas_height - 80))
         
         dx = new_x - self.x
         dy = new_y - self.y
         
         if dx != 0 or dy != 0:
-            # Перемещаем графические элементы
             self.canvas.move(self.rect, dx, dy)
             self.canvas.move(self.text, dx, dy)
-            
-            # Обновляем координаты счета
             self.x = new_x
             self.y = new_y
             
-            # Обновляем все связанные линии
+            # Обновляем линии соединений
             for line_id in self.lines:
                 coords = self.canvas.coords(line_id)
                 if abs(coords[0] - (self.x - dx + 60)) < 1 and abs(coords[1] - (self.y - dy + 80)) < 1:
                     self.canvas.coords(line_id, self.x + 60, self.y + 80, coords[2], coords[3])
                 else:
                     self.canvas.coords(line_id, coords[0], coords[1], self.x + 60, self.y + 80)
-                
                 self.canvas.tag_lower(line_id)
 
     # Обновляем позицию в БД после перемещения
     def update_position(self, event):
-        # Обновляем позицию в БД после перемещения
+        # Сохраняем позицию
         cursor.execute("UPDATE accounts SET x=?, y=? WHERE account_number=?", 
-                     (self.x, self.y, self.account_number))
+                    (self.x, self.y, self.account_number))
         conn.commit()
 
     # Добавление средств на счет
@@ -187,8 +204,7 @@ class Account:
                 
             except ValueError:
                 messagebox.showwarning("Ошибка", "Введите корректную сумму!", parent=dialog)
-        
-        # Создаем кнопку как в окне перевода
+
         btn = ttk.Button(button_frame, 
                     text="Добавить",
                     width=10,
@@ -207,7 +223,7 @@ class Account:
 
     # Перевод средств между счетами
     def transfer(self):
-        # Сначала проверяем наличие доступных счетов
+        # Получаем доступные счета для перевода
         cursor.execute("""
             SELECT connected_account_number 
             FROM connections 
@@ -226,27 +242,49 @@ class Account:
             return
         
         dialog = Toplevel(root)
-        dialog.title("Перевод")
-        dialog.geometry("260x120")
+        dialog.title("Перевод средств")
+        dialog.geometry("300x100")  # Увеличил ширину для нового формата
         dialog.resizable(False, False)
         dialog.transient(root)
         dialog.grab_set()
         
-        tk.Label(dialog, text="Сумма:").grid(row=0, column=0, padx=5, pady=5)
-        amount_entry = tk.Entry(dialog)
-        amount_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Основной фрейм
+        main_frame = ttk.Frame(dialog, padding=10)
+        main_frame.pack(fill='both', expand=True)
         
-        tk.Label(dialog, text="Счет:").grid(row=1, column=0, padx=5, pady=5)
-        target_combobox = ttk.Combobox(dialog, values=available_accounts, state="readonly")
-        target_combobox.grid(row=1, column=1, padx=5, pady=5)
-        target_combobox.current(0)
+        # Фрейм для строки "Дебет - Кредит = Сумма"
+        transfer_frame = ttk.Frame(main_frame)
+        transfer_frame.pack(pady=10)
         
-
+        # Дебет (счет получатель)
+        ttk.Label(transfer_frame, text="Дебет:").pack(side='left')
+        debit_combobox = ttk.Combobox(transfer_frame, values=available_accounts, state="readonly", width=10)
+        debit_combobox.pack(side='left', padx=5)
+        debit_combobox.current(0)
+        
+        # Минус
+        ttk.Label(transfer_frame, text=" - ").pack(side='left')
+        
+        # Кредит (наш текущий счет)
+        ttk.Label(transfer_frame, text=f"Кредит {self.account_number}").pack(side='left')
+        
+        # Равно
+        ttk.Label(transfer_frame, text=" = ").pack(side='left')
+        
+        # Сумма
+        amount_entry = ttk.Entry(transfer_frame, width=10)
+        amount_entry.pack(side='left')
+        amount_entry.focus_set()
+        
+        # Кнопка перевода
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(pady=5)
+        
         def process_transfer():
             try:
                 amount = float(amount_entry.get())
                 amount = int(amount * 100) / 100  # Обрезает лишние знаки без округления
-                target_account_number = int(target_combobox.get())
+                target_account_number = int(debit_combobox.get())
                 
                 if amount <= 0:
                     messagebox.showwarning("Ошибка", "Сумма должна быть положительной!", parent=dialog)
@@ -280,67 +318,53 @@ class Account:
                     messagebox.showwarning("Ошибка", "Счет получателя не найден!", parent=dialog)
                     return
                 
-                
                 # Объединенная логика для каждого типа источника
                 if source_type == 'active':
-                    # Для активного счета-источника
                     if source_balance < amount:
                         messagebox.showwarning("Ошибка", "Недостаточно средств на активном счете!", parent=dialog)
                         return
                     
                     if target_type == 'active':
-                        # Активный -> Активный
                         source_change = -amount  # Уменьшаем актив-источник
-                        target_change = amount   # Увеличиваем актив-цель
+                        target_change = amount  # Увеличиваем актив-цель
                     elif target_type == 'passive':
-                        # Активный -> Пассивный
                         source_change = -amount  # Уменьшаем актив
                         target_change = -amount  # Уменьшаем пассив
                         
                         if target_balance + target_change < 0:
-                            messagebox.showwarning("Ошибка", "Нельзя сделать пасиивный счет отрицательным!", parent=dialog)
+                            messagebox.showwarning("Ошибка", "Нельзя сделать пассивный счет отрицательным!", parent=dialog)
                             return
                     else:  # activepassive
-                        # Активный -> Активно-пассивный
                         source_change = -amount
                         target_change = amount  # Всегда увеличивается для А-П
                 
                 elif source_type == 'passive':
-                    # Для пассивного счета-источника
                     if target_type == 'active':
-                        # Пассивный -> Активный
                         source_change = amount  # Пассив увеличивается
                         target_change = amount  # Актив увеличивается
                     elif target_type == 'passive':
-                        # Пассивный -> Пассивный
                         source_change = amount  # Увеличиваем пассив у источника
                         target_change = -amount  # Уменьшаем пассив у цели
                         if target_balance + target_change < 0:
-                            messagebox.showwarning("Ошибка", "Нельзя сделать пасиивный счет отрицательным!", parent=dialog)
+                            messagebox.showwarning("Ошибка", "Нельзя сделать пассивный счет отрицательным!", parent=dialog)
                             return
                     else:  # activepassive
-                        # Пассивный -> Активно-пассивный
                         source_change = amount
                         target_change = amount  # Всегда увеличивается для А-П
                 
                 else:  # activepassive
-                    # Для активно-пассивного счета-источника
                     if target_type == 'active':
-                        # Активно-пассивный -> Активный
                         source_change = -amount
                         target_change = amount
                     elif target_type == 'passive':
-                        # Активно-пассивный -> Пассивный
                         source_change = -amount
                         target_change = -amount
                         if target_balance + target_change < 0:
-                            messagebox.showwarning("Ошибка", "Нельзя сделать пасиивный счет отрицательным!", parent=dialog)
+                            messagebox.showwarning("Ошибка", "Нельзя сделать пассивный счет отрицательным!", parent=dialog)
                             return
                     else:  # activepassive
-                        # Активно-пассивный -> Активно-пассивный
                         source_change = -amount
                         target_change = amount
-                
                 
                 # Обновляем балансы
                 cursor.execute("UPDATE accounts SET balance=balance+? WHERE account_number=?", 
@@ -359,14 +383,15 @@ class Account:
                                             text=f"Счет: {target_account.account_number}\nБаланс:\n{format_balance(target_account.balance, target_account.type)}")
                 
                 log_transfer(self.account_number, target_account_number, amount)
+                update_recent_operations()  # Обновляем окно показа последних операций
                 dialog.destroy()
-                
+                                
             except ValueError:
                 messagebox.showwarning("Ошибка", "Введите корректные числовые значения!", parent=dialog)    
         
+        ttk.Button(button_frame, text="Перевести", command=process_transfer).pack()
         
-        tk.Button(dialog, text="Перевести", command=process_transfer).grid(row=2, columnspan=2, pady=5)
-        
+        # Центрируем окно
         dialog.update_idletasks()
         width = dialog.winfo_width()
         height = dialog.winfo_height()
@@ -565,6 +590,28 @@ class Account:
                     tk.END, 
                     f"Дебет: {target} ← Кредит: {source} | Сумма: {amount} | Время: ({timestamp})"
                 )
+
+
+# Функция обновления списка операций
+def update_recent_operations():
+    cursor.execute("""
+        SELECT source_account_number, target_account_number, amount, timestamp 
+        FROM transfers 
+        ORDER BY timestamp DESC 
+        LIMIT 2
+    """)
+    transfers = cursor.fetchall()
+    
+    for i, (source, target, amount, timestamp) in enumerate(transfers):
+        text = f"Дебет {target} ← Кредит {source} = {amount} | ({timestamp.split('.')[0]})"
+        operation_labels[i].config(text=text)
+    
+    # Очистка, если операций < 2
+    for i in range(len(transfers), 2):
+        operation_labels[i].config(text="")
+    
+    # Автообновление каждые 5 сек
+    root.after(5000, update_recent_operations)
 
 # Добавить счет на поле
 def add_account(event):
@@ -1198,10 +1245,8 @@ def show_reports():
             # Рассчитываем сумму
             amount = 0.0
             
-            # 1. Считаем сумму по проводкам
             transactions_sum = calculate_transactions_sum(transactions)
             
-            # 2. Если есть формула, считаем по формуле
             if line_formula:
                 formula_sum = calculate_formula_sum(line_formula, results_dict)
                 amount = formula_sum
@@ -1792,7 +1837,7 @@ def show_financial_results_info():
     wrap_lengths = [45, 140, 390, 190, 70]
 
     # Заголовки столбцов
-    headers = ["Номер", "Наименование", "Описание", "Проводки", "Формула"]
+    headers = ["Номер", "Наименование", "Описание", "Проводки", "Строки"]
     for col, (header, width) in enumerate(zip(headers, col_widths)):
         header_cell = ttk.Frame(table_frame, width=width, height=25)
         header_cell.grid(row=1, column=col, sticky='nsew')
@@ -2086,8 +2131,41 @@ root = tk.Tk()
 root.title("Бухгалтерский учет")
 root.state('zoomed')
 
-canvas = tk.Canvas(root, width=800, height=600, bg="white")
+# Создаем холст (на всё окно)
+canvas = tk.Canvas(root, bg="white")
 canvas.pack(fill="both", expand=True)
+
+# Фрейм для операций (будет внутри холста)
+operations_frame = ttk.Frame(canvas, borderwidth=1, relief="groove", padding=5)
+operations_frame.pack_propagate(False)  # Фиксируем размер
+operations_frame.config(width=320, height=100)  # Фиксированные размеры
+
+# Создаем окно на холсте для фрейма операций
+canvas.create_window(
+    0, 0,  # Позиция (x,y) - левый верхний угол с отступом 10 пикселей
+    window=operations_frame,
+    anchor="nw"
+)
+
+# Заголовок и метки операций (как было)
+ttk.Label(operations_frame, text="Последние 2 корреспонденции:", font=('Arial', 10, 'bold')).pack(side=tk.TOP, anchor='w')
+operation_labels = []
+for i in range(2):
+    lbl = ttk.Label(
+        operations_frame, 
+        text="", 
+        font=('Arial', 9), 
+        borderwidth=1, 
+        relief="solid", 
+        padding=5,
+        background='white'
+    )
+    lbl.pack(side=tk.TOP, fill=tk.X, pady=2)
+    operation_labels.append(lbl)
+
+OPERATIONS_FRAME_WIDTH = 320
+OPERATIONS_FRAME_HEIGHT = 100
+
 
 account_list = []
 
@@ -2353,7 +2431,6 @@ def on_click(event):
                     menu.add_command(label="Инфо по счету", command=account.show_account_info) 
                     menu.add_command(label="Перевод на другой счет", command=account.transfer)
                     menu.add_command(label="Внести на счет", command=account.add_funds)
-                    menu.add_command(label="Удалить счет", command=account.delete_account)
                     menu.post(event.x_root, event.y_root)
                     break
                 
@@ -2361,6 +2438,9 @@ def on_click(event):
 canvas.bind("<Button-1>", on_click)
 # Создаем линии соединений после загрузки всех счетов
 update_connection_lines()
+
+# Запускаем автообновление операций
+update_recent_operations()
 
 def on_canvas_configure(event):
     # Обновляем границы при изменении размера Canvas
