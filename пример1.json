@@ -352,10 +352,10 @@
         },
         {
             "account_number": 51,
-            "balance": 170000.0,
+            "balance": 170.0,
             "status": "on field",
-            "x": 226,
-            "y": 163
+            "x": 18,
+            "y": 109
         },
         {
             "account_number": 52,
@@ -473,8 +473,8 @@
             "account_number": 68,
             "balance": 0.0,
             "status": "on field",
-            "x": 510,
-            "y": 311
+            "x": 12,
+            "y": 246
         },
         {
             "account_number": 69,
@@ -522,8 +522,8 @@
             "account_number": 75,
             "balance": 0.0,
             "status": "on field",
-            "x": 492,
-            "y": 55
+            "x": 176,
+            "y": 202
         },
         {
             "account_number": 76,
@@ -583,10 +583,10 @@
         },
         {
             "account_number": 84,
-            "balance": -70000.0,
+            "balance": -170.0,
             "status": "on field",
-            "x": 769,
-            "y": 192
+            "x": 155,
+            "y": 342
         },
         {
             "account_number": 85,
@@ -696,91 +696,92 @@
     ],
     "operations": [
         {
-            "account_number": 84,
-            "amount": -100000,
-            "operation": "Добавление",
-            "timestamp": "2025-05-23 07:37:53"
-        },
-        {
             "account_number": 51,
-            "amount": 200000,
+            "amount": 200,
             "operation": "Добавление",
-            "timestamp": "2025-05-23 07:38:04"
-        },
-        {
-            "account_number": 75,
-            "amount": 30000,
-            "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-23 07:38:23"
+            "timestamp": "2025-06-08 09:29:49"
         },
         {
             "account_number": 84,
-            "amount": 30000,
-            "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-23 07:38:23"
-        },
-        {
-            "account_number": 68,
-            "amount": 3900,
-            "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-23 07:39:24"
+            "amount": -200,
+            "operation": "Добавление",
+            "timestamp": "2025-06-08 09:29:56"
         },
         {
             "account_number": 75,
-            "amount": 3900,
-            "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-23 07:39:24"
-        },
-        {
-            "account_number": 51,
-            "amount": 26100,
+            "amount": 30,
             "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-23 07:39:54"
+            "timestamp": "2025-06-08 09:34:48"
         },
         {
-            "account_number": 75,
-            "amount": 26100,
+            "account_number": 84,
+            "amount": 30,
             "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-23 07:39:54"
-        },
-        {
-            "account_number": 51,
-            "amount": 3900,
-            "operation": "Перевод (исходящий)",
-            "timestamp": "2025-05-23 07:40:01"
+            "timestamp": "2025-06-08 09:34:48"
         },
         {
             "account_number": 68,
-            "amount": 3900,
+            "amount": 4,
+            "operation": "Перевод (исходящий)",
+            "timestamp": "2025-06-08 09:39:04"
+        },
+        {
+            "account_number": 75,
+            "amount": 4,
             "operation": "Перевод (входящий)",
-            "timestamp": "2025-05-23 07:40:01"
+            "timestamp": "2025-06-08 09:39:04"
+        },
+        {
+            "account_number": 51,
+            "amount": 4,
+            "operation": "Перевод (исходящий)",
+            "timestamp": "2025-06-08 09:39:12"
+        },
+        {
+            "account_number": 68,
+            "amount": 4,
+            "operation": "Перевод (входящий)",
+            "timestamp": "2025-06-08 09:39:12"
+        },
+        {
+            "account_number": 51,
+            "amount": 26,
+            "operation": "Перевод (исходящий)",
+            "timestamp": "2025-06-08 09:39:24"
+        },
+        {
+            "account_number": 75,
+            "amount": 26,
+            "operation": "Перевод (входящий)",
+            "timestamp": "2025-06-08 09:39:24"
         }
     ],
     "transfers": [
         {
             "source_account_number": 75,
             "target_account_number": 84,
-            "amount": 30000,
-            "timestamp": "2025-05-23 07:38:23"
+            "amount": 30,
+            "timestamp": "2025-06-08 09:34:48"
         },
         {
             "source_account_number": 68,
             "target_account_number": 75,
-            "amount": 3900,
-            "timestamp": "2025-05-23 07:39:24"
-        },
-        {
-            "source_account_number": 51,
-            "target_account_number": 75,
-            "amount": 26100,
-            "timestamp": "2025-05-23 07:39:54"
+            "amount": 4,
+            "timestamp": "2025-06-08 09:39:04"
         },
         {
             "source_account_number": 51,
             "target_account_number": 68,
-            "amount": 3900,
-            "timestamp": "2025-05-23 07:40:01"
+            "amount": 4,
+            "timestamp": "2025-06-08 09:39:12"
+        },
+        {
+            "source_account_number": 51,
+            "target_account_number": 75,
+            "amount": 26,
+            "timestamp": "2025-06-08 09:39:24"
         }
     ],
-    "timestamp": "2025-05-23 10:40:47"
+    "changed_balance_items": {},
+    "timestamp": "2025-06-12 10:39:52"
 }

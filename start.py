@@ -8,6 +8,7 @@ from datetime import datetime
 import sys
 import os
 
+
 class Account:
     def __init__(self, canvas, x, y, account_number, from_db=False):
         self.canvas = canvas
@@ -220,6 +221,76 @@ class Account:
         y = (dialog.winfo_screenheight() // 2) - (height // 2)
         dialog.geometry(f'+{x}+{y}')
 
+    # Обновление текста счета с учетом операции
+    def update_text_with_operation(self, operation_amount=None, is_source=False):
+        """Обновляет текст счета с информацией об операции"""
+        if operation_amount is not None:
+            # Получаем старый баланс (до операции)
+            old_balance = self.balance + operation_amount if is_source else self.balance - operation_amount
+            
+            # Форматируем старый баланс
+            old_balance_str = format_balance(old_balance, self.type)
+            
+            # Определяем знак операции
+            op_sign = "-" if is_source else "+"
+            
+            # Форматируем сумму операции (без скобок)
+            op_amount = format_balance(abs(operation_amount), self.type).strip("()")
+            
+            # Основной текст (черный)
+            main_text = f"Счет: {self.account_number}\nБаланс:"
+            
+            # Устанавливаем основной текст
+            self.canvas.itemconfig(self.text, 
+                                text=main_text,
+                                font=("Arial", 12, "bold"),
+                                fill="black")
+            
+            # Получаем координаты основного текста
+            bbox = self.canvas.bbox(self.text)
+            
+            # Создаем/обновляем текст старого баланса (черный)
+            if not hasattr(self, 'balance_text_id'):
+                self.balance_text_id = self.canvas.create_text(
+                    bbox[0] + -20, bbox[3] + 5,  # Под "Баланс:", с небольшим отступом
+                    text=old_balance_str,
+                    font=("Arial", 12, "bold"),
+                    fill="black",
+                    anchor="w"
+                )
+            else:
+                self.canvas.itemconfig(self.balance_text_id, 
+                                    text=old_balance_str,
+                                    fill="black")
+            
+            # Создаем/обновляем текст операции (красный)
+            op_text = f" {op_sign} {op_amount}"
+            if not hasattr(self, 'op_text_id'):
+                # Позиционируем сразу после текста баланса
+                op_bbox = self.canvas.bbox(self.balance_text_id)
+                self.op_text_id = self.canvas.create_text(
+                    op_bbox[2] + 0, op_bbox[1] + 8,  # Правее баланса, на той же высоте
+                    text=op_text,
+                    font=("Arial", 12, "bold"),
+                    fill="red",
+                    anchor="w"
+                )
+            else:
+                self.canvas.itemconfig(self.op_text_id, 
+                                    text=op_text,
+                                    fill="red")
+        else:
+            # Обычное отображение без операции
+            self.canvas.itemconfig(self.text, 
+                                text=f"Счет: {self.account_number}\nБаланс: \n{format_balance(self.balance, self.type)}",
+                                font=("Arial", 12, "bold"),
+                                fill="black")
+            
+            # Удаляем дополнительные текстовые элементы, если они есть
+            for attr in ['balance_text_id', 'op_text_id']:
+                if hasattr(self, attr):
+                    self.canvas.delete(getattr(self, attr))
+                    delattr(self, attr)
 
     # Перевод средств между счетами
     def transfer(self):
@@ -594,6 +665,13 @@ class Account:
 
 # Функция обновления списка операций
 def update_recent_operations():
+    global account_list
+    
+    # Сначала сбрасываем выделение операций у всех счетов
+    for account in account_list:
+        account.update_text_with_operation()
+    
+    # Получаем последние 2 операции
     cursor.execute("""
         SELECT source_account_number, target_account_number, amount, timestamp 
         FROM transfers 
@@ -602,9 +680,21 @@ def update_recent_operations():
     """)
     transfers = cursor.fetchall()
     
+    # Обновляем метки операций
     for i, (source, target, amount, timestamp) in enumerate(transfers):
         text = f"Дебет {target} ← Кредит {source} = {amount} | ({timestamp.split('.')[0]})"
         operation_labels[i].config(text=text)
+        
+        # Для самой последней операции (i=0) обновляем отображение счетов
+        if i == 0:
+            # Находим счета-участники операции
+            source_account = next((acc for acc in account_list if acc.account_number == source), None)
+            target_account = next((acc for acc in account_list if acc.account_number == target), None)
+            
+            if source_account:
+                source_account.update_text_with_operation(amount, is_source=True)
+            if target_account:
+                target_account.update_text_with_operation(amount, is_source=False)
     
     # Очистка, если операций < 2
     for i in range(len(transfers), 2):
@@ -716,19 +806,13 @@ def update_connection_lines():
             account2.lines.append(line_id)
 
 
-# def format_balance(balance, acc_type):
-#     """Форматирует баланс счета в зависимости от его типа"""
-#     if acc_type == 'passive' or (acc_type == 'activepassive' and balance < 0):
-#         return f"({abs(balance)})"  # Для пассивных счетов и отрицательного баланса активно-пассивных
-#     return str(balance)
-
 def format_balance(balance, acc_type):
     """Форматирует баланс счета в зависимости от его типа"""
     if (acc_type == 'passive' and balance > 0) or \
        (acc_type == 'active' and balance < 0) or \
        (acc_type == 'activepassive' and balance < 0):
-        return f"({abs(balance)})"  # Отрицательное сальдо в скобках
-    return str(balance)  # Положительное сальдо без скобок
+        return f"({abs(balance):.2f})"  # Отрицательное сальдо в скобках
+    return str(f"{balance:.2f}")  # Положительное сальдо без скобок
 
 def format_category(category):
     """Форматирует категорию счета для отображения"""
@@ -1433,7 +1517,6 @@ def show_reports():
         canvas.bind("<MouseWheel>", _on_mousewheel)
         scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
 
-
     # Функция для обновления текущей вкладки
     def on_tab_changed(event):
         current_tab = notebook.index(notebook.select())
@@ -1635,7 +1718,6 @@ def show_all_accounts_info():
             ttk.Label(account_frame, text=f"Название: {name}", font=('Arial', 11)).pack(anchor='w')
             ttk.Label(account_frame, text=f"Баланс: {format_balance(balance, acc_type)}", font=('Arial', 11)).pack(anchor='w')
             ttk.Label(account_frame, text=f"Тип: {'Актив-Пассив' if acc_type == 'activepassive' else ('Неопределен' if acc_type == 'undefined' else ('Актив' if acc_type == 'active' else 'Пассив'))}", font=('Arial', 12)).pack(anchor='w')
-            #ttk.Label(account_frame, text=f"Категория: {format_category(category)}", font=('Arial', 12)).pack(anchor='w')
 
             # Фрейм для описания с прокруткой
             desc_frame = ttk.Frame(account_frame)
@@ -2350,9 +2432,6 @@ for row in cursor.fetchall():
     y = y if y is not None else 100
     new_account = Account(canvas, x, y, account_number, from_db=True)
     account_list.append(new_account)
-
-
-
 
 # Меню
 menu_bar = Menu(root)
